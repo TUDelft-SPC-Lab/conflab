@@ -32,7 +32,7 @@ timecodes = {
 }
 
 
-class Feeder_conflab(Dataset):
+class ConflabPoseDataset(Dataset):
     """ Feeder for skeleton-based action recognition in kinetics-skeleton dataset
     # Joint index:
     # {0,  "Nose"}
