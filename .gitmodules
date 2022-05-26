@@ -1,0 +1,3 @@
+[submodule "baselines/speaking_status/pose"]
+	path = baselines/speaking_status/pose
+	url = git@github.com:josedvq/MS-G3D.git
