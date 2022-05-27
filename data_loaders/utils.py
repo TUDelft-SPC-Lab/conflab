@@ -1,7 +1,7 @@
 from datetime import timedelta
 from conflab.constants import vid2_start, vid3_start, vid_timecodes
 
-def time_to_seg(time, sr=59.97):
+def time_to_seg(time, sr=59.94):
     '''
     Converts a time (s) in the annotated section of the dataset 
     into a segment number and offset that can be used to localize

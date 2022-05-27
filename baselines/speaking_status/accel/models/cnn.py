@@ -3,10 +3,13 @@ from collections import OrderedDict
 import torch
 import torch.nn as nn
 
+def calc_lout():
+    return 
+
 # Here we define our model as a class
 class MyAlexNet(nn.Module):
     """
-    Input - 3x60
+    Input - 3xseq_len
     C1 - 24@56 (5 kernel, stride=1)
     S1 - 24@27 (3 kernel, stride 2) Subsampling
 
@@ -26,8 +29,9 @@ class MyAlexNet(nn.Module):
     F2 - 192 > 192
     F3 - 192 > 1
     """
-    def __init__(self):
+    def __init__(self, seq_len=60):
         super(MyAlexNet, self).__init__()
+        self.seq_len = seq_len
 
         self.convnet = nn.Sequential(OrderedDict([
             ('c1', nn.Conv1d(3, 24, kernel_size=5)),
@@ -49,23 +53,24 @@ class MyAlexNet(nn.Module):
             ('s3', nn.MaxPool1d(kernel_size=3, stride=2))
         ]))
 
-        #self.avgpool = nn.AdaptiveAvgPool1d(7)
+        # figure out the size of the output
+        convnet_out_shape = self.convnet(torch.empty(1,3,seq_len)).shape
+        convnet_out_seq_len = convnet_out_shape[-1] * convnet_out_shape[-2]
 
         self.fc = nn.Sequential(OrderedDict([
             ('d1', nn.Dropout()),
-            ('f1', nn.Linear(384, 192)),
-            ('relu6', nn.ReLU()),
+            ('f1', nn.Linear(convnet_out_seq_len, 1)),
+            # ('relu6', nn.ReLU()),
 
-            ('d2', nn.Dropout()),
-            ('f2', nn.Linear(192, 192)),
-            ('relu7', nn.ReLU()),
+            # ('d2', nn.Dropout()),
+            # ('f2', nn.Linear(192, 192)),
+            # ('relu7', nn.ReLU()),
 
-            ('f3', nn.Linear(192, 1))
+            # ('f3', nn.Linear(192, 1))
         ]))
 
     def forward(self, x):
         x = self.convnet(x)
-        # x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x.view(-1)

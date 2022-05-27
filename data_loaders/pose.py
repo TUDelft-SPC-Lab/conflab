@@ -6,6 +6,7 @@ import pickle
 import argparse
 from datetime import datetime, timedelta
 
+import torch
 import numpy as np
 import pandas as pd
 from torch.utils import data
@@ -115,8 +116,8 @@ class ConflabPoseExtractor(Extractor):
                     assert track[-1,0] == len(track)-1
                     if (i, pid) in skip: continue
 
-                    ini_times = np.arange(0, len(track)/59.94, stride)
-                    track_examples = [(pid, segment_offset + i, window_len, cam) for i in ini_times[:-1]]
+                    ini_times = np.arange(0, len(track)/59.94 - window_len, stride)
+                    track_examples = [(pid, segment_offset + i, window_len, cam) for i in ini_times]
                     examples += track_examples
 
         return examples
@@ -126,11 +127,11 @@ class ConflabPoseExtractor(Extractor):
         pid, ini_time, len, cam = example
 
         seg, offset = time_to_seg(ini_time)
-        num_frames = round(len*59.97)
+        num_frames = round(len*59.94)
         track = self.tracks[seg][cam]['tracks'][pid]
 
         last_column = 52 if self.return_occlusion else 52-17
-        return track[offset: offset+num_frames, 1: last_column]
+        return torch.from_numpy(track[offset: offset+num_frames, 1: last_column])
 
 
 class ConflabToKinetics(object):
@@ -140,10 +141,11 @@ class ConflabToKinetics(object):
         pose = sample['pose']
 
         # fill data_numpy
-        data_numpy = np.zeros((3, pose.shape[0], 18))
-        data_numpy[0, :, 0:17] = pose[:,0:34:2]
-        data_numpy[1, :, 0:17] = pose[:,1:34:2]
-        data_numpy[2, :, :] = 0.5
+        # output has shape [channel, seq_len, num_keypoints, num_people]
+        new_sample = torch.zeros((3, pose.shape[0], 18, 2))
+        new_sample[0, :, 0:17, 0] = pose[:,0:34:2]
+        new_sample[1, :, 0:17, 0] = pose[:,1:34:2]
+        new_sample[2, :, :, 0] = 0.5
 
         # map from conflab to kinetics joints
         # Kinetics (target) joint index:
@@ -165,47 +167,16 @@ class ConflabToKinetics(object):
         # {15, "LEye"},
         # {16, "REar"},
         # {17, "LEar"},
-        data_numpy[:,:,:] = data_numpy[:,:,[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 0, 0, 0]]
-        data_numpy[2, :, 14:18] = 0 # 14-18 are not in conflab
+        new_sample[:,:,:,0] = new_sample[:,:,[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 0, 0, 0, 0],0]
+        new_sample[2, :, 14:18, 0] = 0 # 14-18 are not in conflab
 
         # centralization
-        data_numpy[0:2] = data_numpy[0:2] - 0.5
-        data_numpy[1:2] = -data_numpy[1:2]
+        new_sample[0:2] = new_sample[0:2] - 0.5
+        new_sample[1:2] = -new_sample[1:2]
 
-        data_numpy = np.nan_to_num(data_numpy) # new: convert NaN to zero
-        data_numpy[0][data_numpy[2] == 0] = 0
-        data_numpy[1][data_numpy[2] == 0] = 0
+        new_sample = torch.nan_to_num(new_sample) # new: convert NaN to zero
+        new_sample[0][new_sample[2] == 0] = 0
+        new_sample[1][new_sample[2] == 0] = 0
 
-        sample['pose'] = data_numpy
+        sample['pose'] = new_sample
         return sample
-
-
-
-def gen_accel_data_from_feeder(feeder, out_folder):
-    val_size = 0.2
-
-    subjects = list(set([ex['pid'] for ex in feeder.examples]))
-    train_subjects, val_subjects = train_test_split(subjects, test_size=val_size, random_state=22, shuffle=True)
-
-    idxs = {}
-    idxs['train'] = [i for i, ex in enumerate(feeder.examples) if ex['pid'] in train_subjects]
-    idxs['val'] = [i for i, ex in enumerate(feeder.examples) if ex['pid'] in val_subjects]
-    print(f'train sz: {len(idxs["train"])}, val sz: {len(idxs["val"])}')
-    accel = feeder.make_accel_dataset()
-
-    for p in ['val', 'train']:
-        sample_label = []
-        fp = np.zeros((len(idxs[p]), 3, 165), dtype=np.float32)
-        for j, i in enumerate(idxs[p]):
-            label = feeder.examples[i]['label']
-            fp[j, :, :] = accel[i, :, :]
-            sample_label.append(label)
-
-        data_out_path = '{}/accel3s_{}.npy'.format(out_folder, p)
-        label_out_path = '{}/accel3s_{}_label.pkl'.format(out_folder, p)
-        sample_name = [str(i) for i in range(0, len(idxs[p]))]
-        with open(label_out_path, 'wb') as f:
-            pickle.dump((sample_name, list(sample_label)), f)
-
-        np.save(data_out_path, fp)
-

@@ -3,8 +3,8 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from sklearn.metrics import roc_auc_score
 
-from lared_laughter.accel.models.cnn import MyAlexNet
-from lared_laughter.accel.models.resnet import ResNetBaseline
+from conflab.baselines.speaking_status.accel.models.cnn import MyAlexNet
+from conflab.baselines.speaking_status.accel.models.resnet import ResNetBaseline
 
 class System(pl.LightningModule):
     def __init__(self, model_name, model_hparams={}, optimizer_name='adam', optimizer_hparams={}):
@@ -21,7 +21,7 @@ class System(pl.LightningModule):
         self.save_hyperparameters()
 
         self.model = {
-            'alexnet': MyAlexNet(),
+            'alexnet': MyAlexNet(seq_len=150),
             'resnet': ResNetBaseline(in_channels=3)
         }[model_name]
 
