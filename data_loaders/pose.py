@@ -14,7 +14,7 @@ from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 
 from conflab.data_loaders.base import Extractor
-
+from conflab.data_loaders.utils import seg_to_offset, time_to_seg, vid_seg_to_segment
 
 class ConflabPoseExtractor(Extractor):
     """ Feeder for skeleton-based action recognition in kinetics-skeleton dataset
@@ -51,29 +51,11 @@ class ConflabPoseExtractor(Extractor):
         self.accel_ds = None
         self.return_occlusion = return_occlusion
 
-        self.load_data()
+    def load_from_pickle(self, data_path):
+        self.tracks = pickle.load(open(data_path, 'rb'))
 
-    def _time_to_seg(self, time):
-        '''
-        Converts a time (s) in the annotated section of the dataset 
-        into a segment number and offset that can be used to localize
-        a window within the loaded tracks
-        '''
-        seg = int(time // 120) # 2 min segments
-        offset = int((time % 120) * 59.97)
-        return seg, offset
-
-    def _vid_seg_to_segment(self, vid, seg):
-        return {
-            (2,8): 0,
-            (2,9): 1,
-            (3,1): 2,
-            (3,2): 3,
-            (3,3): 4,
-            (3,4): 5,
-            (3,5): 6,
-            (3,6): 7
-        }[(vid,seg)]
+    def store_tracks(self, data_path):
+        pickle.dump(self.tracks, open(data_path, 'wb'))
 
     def load_data(self):
         # load file list
@@ -89,7 +71,7 @@ class ConflabPoseExtractor(Extractor):
         for seg_file in tqdm(Path(self.data_path).glob('*.json')):
             parts = os.path.basename(seg_file).split('_')
             cam = int(parts[0][-1:])
-            seg = self._vid_seg_to_segment(
+            seg = vid_seg_to_segment(
                 int(parts[1][-1:]),
                 int(parts[2][-1:])
             )
@@ -122,13 +104,16 @@ class ConflabPoseExtractor(Extractor):
         '''
         Splits data into examples.
         '''
+            #   seg, pid
+        skip = [(1, 11), (1, 42)]
 
         examples = []
         for i, segment in enumerate(tqdm(self.tracks)):
-            segment_offset = i * 120 # 2 minutes per segment
+            segment_offset = seg_to_offset(i)
             for cam, cam_data in segment.items():
                 for pid, track in cam_data['tracks'].items():
                     assert track[-1,0] == len(track)-1
+                    if (i, pid) in skip: continue
 
                     ini_times = np.arange(0, len(track)/59.94, stride)
                     track_examples = [(pid, segment_offset + i, window_len, cam) for i in ini_times[:-1]]
@@ -140,7 +125,7 @@ class ConflabPoseExtractor(Extractor):
 
         pid, ini_time, len, cam = example
 
-        seg, offset = self._time_to_seg(ini_time)
+        seg, offset = time_to_seg(ini_time)
         num_frames = round(len*59.97)
         track = self.tracks[seg][cam]['tracks'][pid]
 
