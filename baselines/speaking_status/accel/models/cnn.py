@@ -59,14 +59,14 @@ class MyAlexNet(nn.Module):
 
         self.fc = nn.Sequential(OrderedDict([
             ('d1', nn.Dropout()),
-            ('f1', nn.Linear(convnet_out_seq_len, 1)),
-            # ('relu6', nn.ReLU()),
+            ('f1', nn.Linear(convnet_out_seq_len, 192)),
+            ('relu6', nn.ReLU()),
 
-            # ('d2', nn.Dropout()),
-            # ('f2', nn.Linear(192, 192)),
-            # ('relu7', nn.ReLU()),
+            ('d2', nn.Dropout()),
+            ('f2', nn.Linear(192, 192)),
+            ('relu7', nn.ReLU()),
 
-            # ('f3', nn.Linear(192, 1))
+            ('f3', nn.Linear(192, 1))
         ]))
 
     def forward(self, x):

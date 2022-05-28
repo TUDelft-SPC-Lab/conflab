@@ -1,4 +1,5 @@
 import os
+import random
 from pathlib import Path
 from sklearn.metrics import roc_auc_score
 
@@ -10,7 +11,17 @@ from scipy.special import expit
 from conflab.data_loaders.base import Extractor
 from conflab.data_loaders.utils import time_to_seg, vid_seg_to_segment
 
+
 class ConflabSubset(torch.utils.data.Subset):
+    def random_split(self, size=0.1):
+        num_samples = int(size*len(self))
+        shuffled_indices = list(self.indices)
+        random.shuffle(self.indices)
+        return (
+            ConflabSubset(self.dataset, shuffled_indices[:num_samples]),
+            ConflabSubset(self.dataset, shuffled_indices[num_samples:])
+        )  
+
     def auc(self, idxs, proba):
         return self.dataset.auc(idxs, proba)
 
@@ -45,6 +56,9 @@ class ConflabDataset(torch.utils.data.Dataset):
             item = self.transform(item)
         
         return item
+
+    def get_groups(self):
+        return [e[0] for e in self.examples]
 
     def get_all_labels(self) -> np.array:
         if 'label' not in self.extractors:
