@@ -1,61 +1,40 @@
 import os
-import glob
 from pathlib import Path
 import json
 import pickle
-import argparse
-from datetime import datetime, timedelta
+from typing import List, Tuple
 
 import torch
 import numpy as np
-import pandas as pd
-from torch.utils import data
 from tqdm import tqdm
-from torch.utils.data import Dataset
-from sklearn.model_selection import train_test_split
 
-from conflab.data_loaders.base import Extractor
-from conflab.data_loaders.utils import seg_to_offset, time_to_seg, vid_seg_to_segment
+from conflab.data_loading.base import Extractor
+from conflab.data_loading.utils import seg_to_offset, time_to_seg, vid_seg_to_segment
 
 class ConflabPoseExtractor(Extractor):
-    """ Feeder for skeleton-based action recognition in kinetics-skeleton dataset
-    # Joint index:
-    # {0,  "Nose"}
-    # {1,  "Neck"},
-    # {2,  "RShoulder"},
-    # {3,  "RElbow"},
-    # {4,  "RWrist"},
-    # {5,  "LShoulder"},
-    # {6,  "LElbow"},
-    # {7,  "LWrist"},
-    # {8,  "RHip"},
-    # {9,  "RKnee"},
-    # {10, "RAnkle"},
-    # {11, "LHip"},
-    # {12, "LKnee"},
-    # {13, "LAnkle"},
-    # {14, "REye"},
-    # {15, "LEye"},
-    # {16, "REar"},
-    # {17, "LEar"},
-    Arguments:
-        data_path: the path to folder with skeletons in COCO JSON format
-        label_path: the path to label
-        window_size: The length of the output sequence
-        debug: If true, only use the first 100 samples
-    """
-
+    """Extracts processed pose data for person_id for a window
+    from time ini_time to ini_time+len given a tuple 
+    (person_id, ini_time, len, _) 
+    """ 
     def __init__(self,
-                 data_path,
+                 data_path: str,
                  return_occlusion=False):
+        """Takes a path to the processed Conflab pose files (folder)
+
+        Args:
+            data_path (str): Path to processed segment files
+            return_occlusion (bool, optional): Set to true to
+                return the 17 occlusion labels in addition to the keypoint
+                x, y location. Defaults to False.
+        """                 
         self.data_path = data_path
         self.accel_ds = None
         self.return_occlusion = return_occlusion
 
-    def load_from_pickle(self, data_path):
+    def load_from_pickle(self, data_path: str) -> None:
         self.tracks = pickle.load(open(data_path, 'rb'))
 
-    def store_tracks(self, data_path):
+    def store_tracks(self, data_path: str) -> None:
         pickle.dump(self.tracks, open(data_path, 'wb'))
 
     def load_data(self):
@@ -101,10 +80,18 @@ class ConflabPoseExtractor(Extractor):
                 'tracks': tracks
             }
 
-    def make_examples(self, window_len=3, stride=1.5):
-        '''
-        Splits data into examples.
-        '''
+    def make_examples(self, window_len=3, stride=1.5) -> List[Tuple[int,  int, int, int]]:
+        """Splits the pose tracks into examples as tuples (person_id, ini_time, len, camera)
+        with times in seconds.
+        ini_time is relative to the dataset global start time 
+
+        Args:
+            window_len (int, optional): example length in seconds. Defaults to 3.
+            stride (float, optional): stride in seconds. Defaults to 1.5.
+
+        Returns:
+            List[Tuple[int,  int, int, int]]: tuple of (person_id, ini_time, len, camera)
+        """        
             #   seg, pid
         skip = [(1, 11), (1, 42)]
 
@@ -123,7 +110,17 @@ class ConflabPoseExtractor(Extractor):
         return examples
  
     def extract(self, example):
+        """Extracts processed pose data for person_id,
+        from time ini_time to ini_time+len given a tuple 
+        (person_id, ini_time, len, camera) 
 
+        Args:
+            example Tuple[int, int, int, int]: an example tuple 
+                (person_id, ini_time, len, camera) to extract
+
+        Returns:
+            np.array: data of shape (round(len*59.94), 34)
+        """           
         pid, ini_time, len, cam = example
 
         seg, offset = time_to_seg(ini_time)
