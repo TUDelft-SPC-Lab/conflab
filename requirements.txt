@@ -1,0 +1,12 @@
+apex==0.1
+matplotlib==3.5.1
+numpy==1.21.0
+pandas==1.4.0
+pytorch_lightning==1.6.3
+PyYAML==6.0
+scikit_learn==1.1.1
+scipy==1.7.3
+tensorboardX==2.5
+torch==1.11.0
+tqdm==4.62.3
+tsai==0.3.1
