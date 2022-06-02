@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 # path to the conflab dataset files
 conflab_path = '/mnt/e/data/conflab'
 
-conflab_pose_path = os.path.join(conflab_path, 'pose_v2')
+conflab_pose_path = os.path.join(conflab_path, 'pose')
 conflab_accel_path = os.path.join(conflab_path, 'accel', 'midge')
 
-midge_raw_data_path = os.path.join(conflab_path, 'midge-data')
-midge_data_path = os.path.join(conflab_path, 'midge-processed')
+midge_raw_data_path = os.path.join(conflab_path, 'sensors', 'raw')
+midge_data_path = os.path.join(conflab_path, 'sensors', 'processed')
 
-conflab_speaking_status_path = os.path.join(conflab_path, 'labels', 'speaking_status')
-conflab_raw_speaking_status_path = os.path.join(conflab_path, 'speaking_status')
+conflab_speaking_status_path = os.path.join(conflab_path, 'actions', 'speaking_status', 'processed')
+conflab_raw_speaking_status_path = os.path.join(conflab_path, 'actions', 'speaking_status', 'raw')
 
 # timecode information
 # used to match video timecode with Midge timecode
