@@ -12,15 +12,24 @@ class ConflabAccelExtractor(Extractor):
     (person_id, ini_time, len, _) 
     """    
     
-    def __init__(self, accel_path: str, sr=50):
-        self.load_accel(accel_path)
+    def __init__(self, accel_path: str, sr=50, columns=None):
         self.sr = sr
+        self.columns = columns
+        self.num_columns = 0
+        self.load_accel(accel_path)
 
     def load_accel(self, accel_path: str) -> None:
         self.accel = {}
         for accel_path in Path(accel_path).glob('*.csv'):
             pid = int(accel_path.stem)
-            self.accel[pid] = pd.read_csv(accel_path)[['time', 'accelX', 'accelY', 'accelZ']]
+            a = pd.read_csv(accel_path)
+            if self.columns is not None:
+                a = a[['time', *self.columns]]
+            self.accel[pid] = a
+            self.num_columns = len(a.columns) -1
+
+        if len(self.accel) == 0:
+            raise Exception('No data was loaded.')
 
     def extract(self, example: Tuple[int,  int, int, int]) -> np.array:
         """Extracts processed acceleration data samples for person_id,

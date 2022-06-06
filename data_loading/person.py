@@ -1,6 +1,6 @@
+from __future__ import annotations
 import random
 from typing import Any, Dict, List, Tuple, Any
-from __future__ import annotations
 from pydantic import Extra
 
 from sklearn.metrics import roc_auc_score

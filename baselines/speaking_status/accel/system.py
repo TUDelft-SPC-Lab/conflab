@@ -7,6 +7,7 @@ from conflab.baselines.speaking_status.accel.models.cnn import MyAlexNet
 from conflab.baselines.speaking_status.accel.models.resnet import ResNetBaseline
 from conflab.baselines.speaking_status.accel.models.minirocket import MiniRocket
 from tsai.models.InceptionTime import InceptionTime
+from tsai.models.ResNet import ResNet
 
 class System(pl.LightningModule):
     def __init__(self, model_name, model_hparams={}, optimizer_name='adam', optimizer_hparams={}):
@@ -25,11 +26,22 @@ class System(pl.LightningModule):
         if model_name == 'alexnet':
             self.model = MyAlexNet(seq_len=150)
         elif model_name == 'resnet':
-            self.model = ResNetBaseline(in_channels=3)
+            self.model = ResNet(
+                c_in=model_hparams.get('c_in', 3), 
+                c_out=1
+            )
+            # self.model = ResNetBaseline(
+            #     in_channels=model_hparams.get('c_in', 3))
         elif model_name == 'minirocket':
-            self.model = MiniRocket(c_in=3, c_out=1, seq_len=150)
+            self.model = MiniRocket(
+                c_in=model_hparams.get('c_in', 3), 
+                c_out=1, 
+                seq_len=150)
         elif model_name == 'inception':
-            self.model = InceptionTime(c_in=3, c_out=1, seq_len=150)
+            self.model = InceptionTime(
+                c_in=model_hparams.get('c_in', 3), 
+                c_out=1, 
+                seq_len=150)
         else:
             raise ValueError('unrecognized model')
 
@@ -70,7 +82,10 @@ class System(pl.LightningModule):
         all_outputs = torch.cat([o[0] for o in validation_step_outputs]).cpu()
         all_labels = torch.cat([o[1] for o in validation_step_outputs]).cpu()
 
-        val_auc = roc_auc_score(all_labels, all_outputs)
+        try:
+            val_auc = roc_auc_score(all_labels, all_outputs)
+        except ValueError:
+            val_auc = 0
         self.log('val_auc', val_auc)
 
     def test_step(self, batch, batch_idx):
@@ -85,6 +100,10 @@ class System(pl.LightningModule):
         all_outputs = torch.cat([o[0] for o in test_step_outputs]).cpu()
         all_labels = torch.cat([o[1] for o in test_step_outputs]).cpu()
 
-        test_auc = roc_auc_score(all_labels, all_outputs)
+        try:
+            test_auc = roc_auc_score(all_labels, all_outputs)
+        except ValueError:
+            test_auc = 0
+            
         self.test_results = {'auc': test_auc, 'proba': all_outputs}
         self.log('test_auc', test_auc)
