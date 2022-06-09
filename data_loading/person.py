@@ -89,6 +89,12 @@ class ConflabDataset(torch.utils.data.Dataset):
         labels = [self.extractors['label'].extract(ex) for ex in self.examples]
         return np.array(labels)
 
+    def get_labels(self, idxs) -> np.array:
+        if 'label' not in self.extractors:
+            raise Exception('called_get_all_labels() but no label extractor was provided to ConflabDataset object')
+        labels = [self.extractors['label'].extract(self.examples[i]) for i in idxs]
+        return np.array(labels)
+
     def auc(self, idxs: List[int], proba: np.array) -> float:
         labels = self.get_all_labels()
         labels = labels[idxs]

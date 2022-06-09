@@ -7,11 +7,11 @@ conflab_path = '/mnt/e/data/conflab/release'
 
 conflab_pose_path = os.path.join(conflab_path, 'pose')
 
-midge_raw_data_path = os.path.join(conflab_path, 'sensors', 'raw')
-midge_data_path = os.path.join(conflab_path, 'sensors', 'processed')
+midge_raw_data_path = os.path.join(conflab_path, 'data_raw' 'wearables', 'raw')
+midge_data_path = os.path.join(conflab_path, 'data_processed', 'wearables')
 
-conflab_speaking_status_path = os.path.join(conflab_path, 'actions', 'speaking_status', 'processed')
-conflab_raw_speaking_status_path = os.path.join(conflab_path, 'actions', 'speaking_status', 'raw')
+conflab_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'processed')
+conflab_raw_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'raw')
 
 # timecode information
 # used to match video timecode with Midge timecode
