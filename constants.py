@@ -13,6 +13,9 @@ midge_data_path = os.path.join(conflab_path, 'data_processed', 'wearables')
 conflab_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'processed')
 conflab_raw_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'raw')
 
+ff_raw_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'raw')
+ff_processed_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'processed')
+
 # timecode information
 # used to match video timecode with Midge timecode
 vid2_start = datetime(2019, 10, 24, 16, 49, 36, int(1000000 * 58/59.94)) # start timecode of vid2 : 14:49:36:58
@@ -31,4 +34,5 @@ vid_timecodes = {
 
 annotated_section_start = vid_timecodes['vid2_seg8']
 annotated_section_end = vid3_start + timedelta(minutes=12)
+vid3_offset_from_vid2 = vid3_start - annotated_section_start
 annotated_section_len = (annotated_section_end - annotated_section_start)
