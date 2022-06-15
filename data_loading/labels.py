@@ -11,9 +11,7 @@ class ConflabLabelExtractor(Extractor):
     (person_id, ini_time, len, _) 
     """  
     def __init__(self, labels_path):
-        self.labels = []
-        for p in Path(labels_path).glob('*.csv'):
-            self.labels.append(pd.read_csv(p, index_col=False))
+        self.labels = pd.read_csv(labels_path, index_col=None)
 
     def extract(self, example):
         """Extracts processed action labels for person_id,
@@ -32,8 +30,8 @@ class ConflabLabelExtractor(Extractor):
         num_frames = round(len*59.94)
 
         try:
-            labels = self.labels[seg][str(pid)].iloc[offset: offset + num_frames]
+            labels = self.labels[seg][str(pid)].iloc[offset: offset + num_frames].to_numpy()
         except:
             raise Exception(f'Error for pid={pid}, ini_time={ini_time}, seg={seg}, offset={offset}')
 
-        return int(labels.mean() > 0.5)
+        return labels.squeeze()

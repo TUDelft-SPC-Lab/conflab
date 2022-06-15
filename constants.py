@@ -5,16 +5,19 @@ from datetime import datetime, timedelta
 # path to the conflab dataset files
 conflab_path = '/mnt/e/data/conflab/release'
 
-conflab_pose_path = os.path.join(conflab_path, 'pose')
 
-midge_raw_data_path = os.path.join(conflab_path, 'data_raw' 'wearables', 'raw')
-midge_data_path = os.path.join(conflab_path, 'data_processed', 'wearables')
+# paths to raw data
+raw_ss_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'raw')
+raw_audio_path = os.path.join(conflab_path, 'data_raw', 'audio')
+raw_wearables_path = os.path.join(conflab_path, 'data_raw', 'wearables')
+raw_ff_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'raw')
 
-conflab_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'processed')
-conflab_raw_speaking_status_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'raw')
+# paths to processed data
+processed_ss_path = os.path.join(conflab_path, 'annotations', 'actions', 'speaking_status', 'processed')
+processed_pose_path = os.path.join(conflab_path, 'annotations', 'pose', 'coco')
+processed_wearables_path = os.path.join(conflab_path, 'data_processed', 'wearables')
+processed_ff_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'processed')
 
-ff_raw_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'raw')
-ff_processed_data_path = os.path.join(conflab_path, 'annotations', 'f_formations', 'processed')
 
 # timecode information
 # used to match video timecode with Midge timecode

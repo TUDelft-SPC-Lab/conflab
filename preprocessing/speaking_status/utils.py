@@ -3,9 +3,10 @@ import argparse
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 
-from conflab.constants import conflab_speaking_status_path, conflab_raw_speaking_status_path
+from conflab.constants import processed_ss_path, raw_ss_path
 from conflab.preprocessing.tools import interpolate
 
 def parse_fname(fname):
@@ -53,6 +54,52 @@ def preprocess_labels_in_place(labels):
                     limit_direction= 'both',
                     axis=0)
 
+seg_map = {
+    'vid2_seg8': 0,
+    'vid2_seg9': 1,
+    'vid3_seg1': 2,
+    'vid3_seg2': 3,
+    'vid3_seg3': 4,
+    'vid3_seg4': 5,
+    'vid3_seg5': 6,
+    'vid3_seg6': 7
+}
+
+seg_offsets = [
+    0    , 7200 , 13200, 20400,
+    27600, 34800, 42000, 49200,
+    56400
+]
+
+total_len = 56400
+
+def join_labels(labels):
+    pids = [pid for seg_data in labels.values() 
+        for pid in seg_data.keys()]
+    joint_speaking = {pid: np.empty((total_len)) for pid in pids}
+    joint_confiden = {pid: np.empty((total_len)) for pid in pids}
+
+    for seg_name, seg_data in labels.items():
+        seg_id = seg_map[seg_name]
+        seg_offset = seg_offsets[ seg_id ]
+        seg_length = seg_offsets[seg_id+1] - seg_offset
+
+        for pid in pids:
+            if pid in seg_data:
+                joint_speaking[pid][seg_offset: seg_offset + seg_length] = \
+                    seg_data[pid]['ss']['data0'].to_numpy()
+                joint_confiden[pid][seg_offset: seg_offset + seg_length] = \
+                    seg_data[pid]['ss']['data0'].to_numpy()
+            else:
+                joint_speaking[pid][seg_offset: seg_offset + seg_length] = np.nan
+                joint_confiden[pid][seg_offset: seg_offset + seg_length] = np.nan
+
+    joint_speaking = pd.DataFrame.from_dict(joint_speaking, orient='columns')
+    joint_confiden = pd.DataFrame.from_dict(joint_confiden, orient='columns')
+
+    return joint_speaking, joint_confiden
+
+
 def write_csv_labels(labels: dict, processed_labels_path):
     if not os.path.exists(os.path.join(processed_labels_path, 'speaking')):
         os.mkdir(os.path.join(processed_labels_path, 'speaking'))
@@ -81,9 +128,9 @@ def write_csv_labels(labels: dict, processed_labels_path):
         )
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = 'This script converts the labels from covfee output files into CSV dataframes')
-    parser.add_argument('--raw_labels_path', help='path to raw data (output of Covfee)', required=False, default=conflab_raw_speaking_status_path)
-    parser.add_argument('--processed_labels_path', help='path to output folder', required=False, default=conflab_speaking_status_path)
+    parser = argparse.ArgumentParser(description='This script converts the labels from covfee output files into CSV dataframes')
+    parser.add_argument('--raw_labels_path', help='path to raw data (output of Covfee)', required=False, default=raw_ss_path)
+    parser.add_argument('--processed_labels_path', help='path to output folder', required=False, default=processed_ss_path)
     args = parser.parse_args()
 
     labels = read_labels(args.raw_labels_path)
