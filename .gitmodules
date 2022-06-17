@@ -1,5 +1,9 @@
 [submodule "baselines/speaking_status/pose"]
 	path = baselines/speaking_status/pose
 	url = git@github.com:josedvq/MS-G3D.git
+[submodule "baselines/person_keypoints"]
+	path = baselines/person_keypoints
+	url = git@github.com:TUDelft-SPC-Lab/conflab-keypoint-detection.git
 [submodule "baselines/f_formations"]
 	path = baselines/f_formations
+	url = git@github.com:steph-tan/FF_conflab.git

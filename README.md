@@ -2,8 +2,6 @@
 
 This repository contains code that may be useful for use of the Conflab dataset.
 
-
-
 We provide:
 
 - Baselines used in the paper: 
@@ -18,6 +16,8 @@ We provide:
 
 # Setup
 
+
+
 To use the code externally, add the parent folder to PYTHONPATH. For example:
 
 ```
@@ -31,10 +31,30 @@ Then you will be able to import conflab in your own projects. For example, to us
 from conflab.data_loading.person import ConflabPersonDataset
 ```
 
-### Path to the dataset
+## Path to the dataset
 
 The dataloaders and preprocessing scripts need to know the path to the conflab dataset files. You can set it in constants.py:
 
 ```
 conflab_path = '/path/to/my/conflab/copy'
 ```
+
+## Baselines
+
+The speaking status detection baseline is part of this repository. The F-formations and person detection / keypoint estimation baselines are in separate repositories:
+
+- [F-formation detection](https://github.com/steph-tan/FF_conflab)
+- [Keypoint estimation](https://github.com/TUDelft-SPC-Lab/conflab-keypoint-detection)
+- [Speaking status detection from pose](https://github.com/josedvq/MS-G3D)
+
+These baselines are also referenced as git submodules in this repository under `/baselines`. To download them, run the following after cloning:
+
+```
+git submodule init
+git submodule update
+```
+
+or clone with `--recursive` option.
+
+
+
