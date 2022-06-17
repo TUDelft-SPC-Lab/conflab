@@ -41,20 +41,28 @@ conflab_path = '/path/to/my/conflab/copy'
 
 ## Baselines
 
-The speaking status detection baseline is part of this repository. The F-formations and person detection / keypoint estimation baselines are in separate repositories:
+The speaking status detection baseline is part of this repository (except for the MS-G3D pose-based method which is in a fork of the original author's repository):
+
+- [Speaking status detection from pose](https://github.com/josedvq/MS-G3D)
+
+The F-formations and person detection / keypoint estimation baselines are in separate repositories:
 
 - [F-formation detection](https://github.com/steph-tan/FF_conflab)
 - [Keypoint estimation](https://github.com/TUDelft-SPC-Lab/conflab-keypoint-detection)
-- [Speaking status detection from pose](https://github.com/josedvq/MS-G3D)
 
-These baselines are also referenced as git submodules in this repository under `/baselines`. To download them, run the following after cloning:
+
+All these baselines are also referenced as git submodules in this repository under `/baselines`. To download them, run the following after cloning:
 
 ```
 git submodule init
 git submodule update
 ```
 
-or clone with `--recursive` option.
+or clone with `--recursive` option:
+
+```
+git clone --recursive git@github.com:TUDelft-SPC-Lab/conflab.git
+```
 
 
 
