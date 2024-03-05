@@ -324,3 +324,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+    # The check3d script from https://github.com/idiap/multicamera-calibration can be used to evaluate the reprojections
+    # of test points that were not used in the bundle adjustment
