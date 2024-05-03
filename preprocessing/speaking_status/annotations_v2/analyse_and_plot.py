@@ -88,8 +88,18 @@ def majority_vote(all_annotation_data: np.ndarray, valid_ids: list[int]) -> np.n
     return result
 
 
+@dataclass
+class AggrementData:
+    data: list[float]
+    mean: Optional[float] = None
+    std: Optional[float] = None
+    num_marked_missing: int = 0
+
+
 def get_all_data_for_participant(
-    participant_id: int, all_annotation_data: list[AnnotationData]
+    participant_id: int,
+    all_annotation_data: list[AnnotationData],
+    total_agreement: dict[str, AggrementData],
 ):
     participant_annotations = []
     prolific_ids = []
@@ -104,6 +114,9 @@ def get_all_data_for_participant(
                         prolific_ids.append(response.prolific_id)
                         min_len = min(min_len, len(participant_annotation))
                     else:
+                        if response.prolific_id[0] not in total_agreement:
+                            total_agreement[response.prolific_id[0]] = AggrementData([])
+                        total_agreement[response.prolific_id[0]].num_marked_missing += 1
                         print(
                             f"participant {participant_id} marked missing by {response.prolific_id}"
                         )
@@ -113,13 +126,6 @@ def get_all_data_for_participant(
         for participant_annotation in participant_annotations
     ]
     return np.array(prolific_ids), np.array(participant_annotations)
-
-
-@dataclass
-class AggrementData:
-    data: list[float]
-    mean: Optional[float] = None
-    std: Optional[float] = None
 
 
 def main(
@@ -139,7 +145,7 @@ def main(
     for participant_id in [1, 2]:  # Analyse dat for participant 1 and 2
         print("\nParticipant", participant_id)
         prolific_ids, participant_data = get_all_data_for_participant(
-            participant_id, all_annotation_data
+            participant_id, all_annotation_data, total_agreement
         )
         vote_data = majority_vote(participant_data, range(len(prolific_ids)))
         agreement = np.sum(vote_data == participant_data, axis=1) / vote_data.shape[0]
@@ -169,6 +175,13 @@ def main(
             f"annotator {annotator}, agreement, mean {agreement.mean*100:2.2f}%, std {agreement.std*100:2.2f}%"
         )
 
+    print(f"\nProlific annotators that marked participants as missing")
+    for annotator, agreement in total_agreement.items():
+        if agreement.num_marked_missing > 0:
+            print(
+                f"{annotator}, marked missing {agreement.num_marked_missing} participants"
+            )
+
     print(f"\nProlific list over {min_aggrement*100:2.2f}% agreement:")
     for annotator, agreement in total_agreement.items():
         if agreement.mean > min_aggrement:
@@ -181,4 +194,4 @@ if __name__ == "__main__":
         Path("/home/era/code/covfee-repos/database_pilot_v1.json"),
     ]
 
-    main(data_files, num_annotated_participants=2, do_plots=True, min_aggrement=0.8)
+    main(data_files, num_annotated_participants=2, do_plots=False, min_aggrement=0.8)
