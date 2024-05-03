@@ -144,7 +144,7 @@ def main(
         )
 
     total_agreement: dict[str, AggrementData] = {}
-    for participant_id in [1, 2]:  # Analyse dat for participant 1 and 2
+    for participant_id in range(1, num_annotated_participants+1):
         print("\nParticipant", participant_id)
         prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
             participant_id, all_annotation_data, total_agreement
@@ -181,19 +181,24 @@ def main(
     for annotator, agreement in total_agreement.items():
         if agreement.num_marked_missing > 0:
             print(
-                f"{annotator}, marked missing {agreement.num_marked_missing} participants"
+                f"{annotator}, marked missing {agreement.num_marked_missing} participants out of {num_annotated_participants}"
             )
 
-    print(f"\nProlific list over {min_aggrement*100:2.2f}% agreement:")
+    max_missing_threshold = 0
+    print(f"\nProlific list over {min_aggrement*100:2.2f}% agreement and missing <= {max_missing_threshold}:")
+    i = 0
     for annotator, agreement in total_agreement.items():
-        if agreement.mean > min_aggrement:
+        if agreement.mean > min_aggrement and agreement.num_marked_missing <= max_missing_threshold:
             print(f"{annotator},")
+            i += 1
+    print(f"Total {i} annotators")
 
 
 if __name__ == "__main__":
     data_files = [
-        Path("/home/era/code/covfee-repos/database_pilot_v0.json"),
-        Path("/home/era/code/covfee-repos/database_pilot_v1.json"),
+        # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v0.json"),
+        # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v1.json"),
+        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.json"),
     ]
 
-    main(data_files, num_annotated_participants=2, do_plots=False, min_aggrement=0.8)
+    main(data_files, num_annotated_participants=3, do_plots=False, min_aggrement=0.7)
