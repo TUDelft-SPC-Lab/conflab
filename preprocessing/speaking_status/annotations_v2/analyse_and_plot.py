@@ -15,6 +15,7 @@ from data_model import (
     AnnotationData,
     load_json_data,
 )
+from copy import deepcopy
 
 
 def savefig(save_dir: Path, fig: Figure, ax: Axes, i: int, end_idx: int):
@@ -100,7 +101,8 @@ def get_all_data_for_participant(
     participant_id: int,
     all_annotation_data: list[AnnotationData],
     total_agreement: dict[str, AggrementData],
-):
+) -> tuple[np.ndarray, np.ndarray, dict[str, AggrementData]]:
+    total_agreement = deepcopy(total_agreement)
     participant_annotations = []
     prolific_ids = []
     min_len = np.inf
@@ -125,7 +127,7 @@ def get_all_data_for_participant(
         participant_annotation[:min_len]
         for participant_annotation in participant_annotations
     ]
-    return np.array(prolific_ids), np.array(participant_annotations)
+    return np.array(prolific_ids), np.array(participant_annotations), total_agreement
 
 
 def main(
@@ -144,7 +146,7 @@ def main(
     total_agreement: dict[str, AggrementData] = {}
     for participant_id in [1, 2]:  # Analyse dat for participant 1 and 2
         print("\nParticipant", participant_id)
-        prolific_ids, participant_data = get_all_data_for_participant(
+        prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
             participant_id, all_annotation_data, total_agreement
         )
         vote_data = majority_vote(participant_data, range(len(prolific_ids)))
