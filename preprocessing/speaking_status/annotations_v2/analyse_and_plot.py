@@ -219,7 +219,8 @@ if __name__ == "__main__":
     data_files = [
         # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v0.json"),
         # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v1.json"),
-        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.json"),
+        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.covfee.json"),
+        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v02.covfee.json"),
     ]
 
     main(data_files, num_annotated_participants=3, do_plots=False, min_aggrement=0.7)
