@@ -168,7 +168,10 @@ def main(
             print(f"annotator {annotator}, agreement {agreement_i*100:2.2f}%")
             if annotator not in total_agreement:
                 total_agreement[annotator] = AggrementData([])
-            total_agreement[annotator].data.append(agreement_i)
+            # Participant 2 has good visibility and overall good aggrement with the annotators, so it's good to use as
+            # a reference for screening the good annotators
+            if participant_id == 2:
+                total_agreement[annotator].data.append(agreement_i)
 
         participant_data = np.concatenate((participant_data, vote_data[np.newaxis, :]))
         prolific_ids = np.concatenate((prolific_ids, ["majority_vote"]))
@@ -183,8 +186,8 @@ def main(
 
     print("\nAggregate results")
     for annotator, agreement in total_agreement.items():
-        agreement.mean = np.mean(agreement.data)
-        agreement.std = np.std(agreement.data)
+        agreement.mean = np.nanmean(agreement.data)
+        agreement.std = np.nanstd(agreement.data)
         print(
             f"annotator {annotator}, agreement: mean {agreement.mean*100:2.2f}%, std {agreement.std*100:2.2f}%"
         )
