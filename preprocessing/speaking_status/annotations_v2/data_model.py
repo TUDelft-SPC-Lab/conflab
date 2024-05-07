@@ -1,12 +1,8 @@
 from pathlib import Path
 import numpy as np
-from pathlib import Path
 import json
-import json
-from pydantic import BaseModel
 from typing import Optional, Annotated, Any
 from pydantic_core import core_schema
-from typing_extensions import Annotated
 from datetime import datetime
 from pydantic import (
     BaseModel,
@@ -14,6 +10,7 @@ from pydantic import (
     GetJsonSchemaHandler,
 )
 from pydantic.json_schema import JsonSchemaValue
+
 
 def ndarray_serialiser(obj: np.ndarray) -> list[Any]:
     return obj.tolist()
@@ -76,12 +73,23 @@ class State(BaseModel):
     mediaPaused: Optional[bool]
 
 
+class Annotation(BaseModel):
+    participant: str
+    category: str
+    data: Optional[AnnotatedNDArray]
+
+
+class JourneyInResponse(BaseModel):
+    global_unique_id: str
+    prolific_id: Optional[str]
+
+
 class Response(BaseModel):
     created: datetime
     submitted: bool
     state: Optional[State]
-    annotations: list[AnnotatedNDArray]
-    prolific_id: list[str]
+    annotations: dict[str, Annotation]
+    journeys: list[JourneyInResponse]
 
 
 class Node(BaseModel):
@@ -90,26 +98,51 @@ class Node(BaseModel):
 
 class Journey(BaseModel):
     nodes: list[int]
+    global_unique_id: str
 
 
-class AnnotationData(BaseModel):
+class HITData(BaseModel):
     hit_id: str
+    global_unique_id: str
     nodes: dict[int, Node]
     journeys: list[Journey]
 
-def remove_partial_annotations_(annotation_data: AnnotationData, num_annotated_participants: int) -> None:
+
+def remove_partial_annotations_(
+    annotation_data: HITData, num_annotated_participants: int
+) -> None:
+    to_delete = []
+    for i, node in annotation_data.nodes.items():
+        for response in node.responses:
+            if len(response.annotations) != num_annotated_participants:
+                raise ValueError(
+                    f"Expected {num_annotated_participants} annotations, got {len(response.annotations)} for {response.journeys[0].prolific_id} "
+                )
+                
+            for annotation in response.annotations.values():
+                if annotation.data is None:
+                    print(
+                        f"{response.journeys[0].prolific_id} did not annotate all the participants"
+                    )
+                    to_delete.append(i)
+                    break
+            if i in to_delete:
+                break
+
+    for key in to_delete:
+        del annotation_data.nodes[key]
+
+
+def check_single_journey(annotation_data: HITData) -> None:
+    # For our studies we have a single journey per response
     for node in annotation_data.nodes.values():
         for response in node.responses:
-            if (
-                len(response.annotations) > 0
-                and len(response.annotations) != num_annotated_participants
-            ):
-                response.annotations = []
-                print(f"Removing partial annotations done by {response.prolific_id}")
-            assert len(response.prolific_id) == 0 or len(response.prolific_id) == 1
+            assert len(response.journeys) == 1
 
-def load_json_data(database_file: Path, num_annotated_participants: int) -> AnnotationData:
+
+def load_json_data(database_file: Path, num_annotated_participants: int) -> HITData:
     with open(database_file, "r") as f:
-        annotation_data = AnnotationData.model_validate(json.load(f))
+        annotation_data = HITData.model_validate(json.load(f))
         remove_partial_annotations_(annotation_data, num_annotated_participants)
+        check_single_journey(annotation_data)
         return annotation_data

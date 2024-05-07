@@ -6,13 +6,12 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 import numpy as np
-from pathlib import Path
 import threading
 from tqdm import tqdm
 from typing import Optional
 from dataclasses import dataclass
 from data_model import (
-    AnnotationData,
+    HITData,
     load_json_data,
 )
 from copy import deepcopy
@@ -56,7 +55,7 @@ def plot_annotations(
             ax.bar(
                 x_idx,
                 annotation_data[i:end_idx] * 0.5,
-                label=f"Annotator {prolific_ids[j][0]}",
+                label=f"Annotator {prolific_ids[j]}",
                 bottom=np.zeros_like(x_idx) + ((num_participants - j - 1) * 0.5),
             )
 
@@ -99,7 +98,7 @@ class AggrementData:
 
 def get_all_data_for_participant(
     participant_id: int,
-    all_annotation_data: list[AnnotationData],
+    all_annotation_data: list[HITData],
     total_agreement: dict[str, AggrementData],
 ) -> tuple[np.ndarray, np.ndarray, dict[str, AggrementData]]:
     total_agreement = deepcopy(total_agreement)
@@ -109,19 +108,30 @@ def get_all_data_for_participant(
     for all_annotation_data_i in all_annotation_data:
         for node in all_annotation_data_i.nodes.values():
             for response in node.responses:
-                if len(response.annotations) > 0:
-                    participant_annotation = response.annotations[participant_id - 1]
-                    if len(participant_annotation) > 1:
-                        participant_annotations.append(participant_annotation)
-                        prolific_ids.append(response.prolific_id)
-                        min_len = min(min_len, len(participant_annotation))
-                    else:
-                        if response.prolific_id[0] not in total_agreement:
-                            total_agreement[response.prolific_id[0]] = AggrementData([])
-                        total_agreement[response.prolific_id[0]].num_marked_missing += 1
-                        print(
-                            f"participant {participant_id} marked missing by {response.prolific_id}"
+                participant_annotation = [
+                    annotations
+                    for annotations in response.annotations.values()
+                    if annotations.participant == f"Participant_{participant_id}"
+                ]
+                assert len(participant_annotation) == 1
+                participant_annotation = participant_annotation[0]
+                if len(participant_annotation.data) > 1:
+                    participant_annotations.append(participant_annotation.data)
+                    prolific_ids.append(response.journeys[0].prolific_id)
+                    min_len = min(min_len, len(participant_annotation.data))
+                elif len(participant_annotation.data) == 1:
+                    if response.journeys[0].prolific_id not in total_agreement:
+                        total_agreement[response.journeys[0].prolific_id] = (
+                            AggrementData([])
                         )
+                    total_agreement[
+                        response.journeys[0].prolific_id
+                    ].num_marked_missing += 1
+                    print(
+                        f"participant {participant_id} marked missing by {response.journeys[0].prolific_id}"
+                    )
+                else:
+                    raise ValueError("Data error")
 
     participant_annotations = [
         participant_annotation[:min_len]
@@ -144,7 +154,7 @@ def main(
         )
 
     total_agreement: dict[str, AggrementData] = {}
-    for participant_id in range(1, num_annotated_participants+1):
+    for participant_id in range(1, num_annotated_participants + 1):
         print("\nParticipant", participant_id)
         prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
             participant_id, all_annotation_data, total_agreement
@@ -154,12 +164,12 @@ def main(
 
         for annotator, agreement_i in zip(prolific_ids, agreement):
             print(f"annotator {annotator}, agreement {agreement_i*100:2.2f}%")
-            if annotator[0] not in total_agreement:
-                total_agreement[annotator[0]] = AggrementData([])
-            total_agreement[annotator[0]].data.append(agreement_i)
+            if annotator not in total_agreement:
+                total_agreement[annotator] = AggrementData([])
+            total_agreement[annotator].data.append(agreement_i)
 
         participant_data = np.concatenate((participant_data, vote_data[np.newaxis, :]))
-        prolific_ids = np.concatenate((prolific_ids, [["majority_vote"]]))
+        prolific_ids = np.concatenate((prolific_ids, ["majority_vote"]))
 
         if do_plots:
             plot_annotations(
@@ -174,10 +184,11 @@ def main(
         agreement.mean = np.mean(agreement.data)
         agreement.std = np.std(agreement.data)
         print(
-            f"annotator {annotator}, agreement, mean {agreement.mean*100:2.2f}%, std {agreement.std*100:2.2f}%"
+            f"annotator {annotator}, agreement: mean {agreement.mean*100:2.2f}%, std {agreement.std*100:2.2f}%"
         )
+    print(f"Total {len(total_agreement)} annotators")
 
-    print(f"\nProlific annotators that marked participants as missing")
+    print("\nProlific annotators that marked participants as missing")
     for annotator, agreement in total_agreement.items():
         if agreement.num_marked_missing > 0:
             print(
@@ -185,10 +196,15 @@ def main(
             )
 
     max_missing_threshold = 0
-    print(f"\nProlific list over {min_aggrement*100:2.2f}% agreement and missing <= {max_missing_threshold}:")
+    print(
+        f"\nProlific list over {min_aggrement*100:2.2f}% agreement and missing <= {max_missing_threshold}:"
+    )
     i = 0
     for annotator, agreement in total_agreement.items():
-        if agreement.mean > min_aggrement and agreement.num_marked_missing <= max_missing_threshold:
+        if (
+            agreement.mean > min_aggrement
+            and agreement.num_marked_missing <= max_missing_threshold
+        ):
             print(f"{annotator},")
             i += 1
     print(f"Total {i} annotators")
