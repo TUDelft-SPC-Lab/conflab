@@ -72,6 +72,8 @@ def plot_annotations(
         else:
             savefig(save_dir, fig, ax, i, end_idx)
 
+        plt.close(fig)
+
     for thread in tqdm(thread_list, desc="thread"):
         thread.join()
 
