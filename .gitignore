@@ -4,3 +4,4 @@
 /baselines/speaking_status/pose
 tracks.pkl
 **/*/plots/*
+**/*/video_with_audio/*
