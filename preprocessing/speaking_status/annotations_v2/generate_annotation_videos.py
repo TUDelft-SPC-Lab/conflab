@@ -43,6 +43,7 @@ camera_raw_timecodes = {
 @click.option("--raw-videos-folder", required=True, help="Folder with audio samples.")
 @click.option("--output-folder", required=True, help="Folder with audio samples.")
 @click.option("--overwrite", is_flag=True, help="Overwrite the output folder.")
+@click.option("--only-audio", is_flag=True, help="Produce video with only audio, the video will be black.")
 def main(
     wav_audio_folder: str,
     raw_audio_folder: str,
@@ -50,6 +51,7 @@ def main(
     video_segments_folder: str,
     raw_videos_folder: str,
     overwrite: bool,
+    only_audio: bool,
 ):
     if not Path(raw_videos_folder).exists():
         raise ValueError("Mount the bulk storage first")
@@ -167,19 +169,34 @@ def main(
                 output_video_path.parent.mkdir(parents=True, exist_ok=True)
 
                 # Combine the video and audio, this is re-encoding the audio because remuxing directly does not work
-                # fmt: off
-                cmd = [
-                    "ffmpeg",
-                    "-hide_banner",
-                    "-loglevel", "panic",
-                    "-i", str(video_segment),
-                    "-i", str(output_audio_path),
-                    "-c:v", "copy",
-                    "-map", "0:v:0",
-                    "-map", "1:a:0",
-                    str(output_video_path),
-                ]
-                # fmt: on
+                if only_audio:
+                    # fmt: off
+                    cmd = [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel", "error",
+                        "-f", "lavfi",
+                        "-i", "color=c=black:s=256x144:r=59.94", # 144p resolution for faster processing and 59.94 fps, same as the video
+                        "-i", str(output_audio_path),
+                        "-c:v", "libx264",
+                        "-c:a", "aac", # Audio codec pcm_s16le is not supported in mp4, so re-encode to aac
+                        "-shortest", # The black filter is infinite length, stop when the audio stops
+                        str(output_video_path),
+                    ]
+                else:
+                    # fmt: off
+                    cmd = [
+                        "ffmpeg",
+                        "-hide_banner",
+                        "-loglevel", "panic",
+                        "-i", str(video_segment),
+                        "-i", str(output_audio_path),
+                        "-c:v", "copy",
+                        "-map", "0:v:0",
+                        "-map", "1:a:0",
+                        str(output_video_path),
+                    ]
+                    # fmt: on
                 if overwrite:
                     cmd.append("-y")
                 subprocess.run(cmd)
