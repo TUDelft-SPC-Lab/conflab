@@ -80,6 +80,9 @@ def plot_annotations(
 
 def majority_vote(all_annotation_data: np.ndarray, valid_ids: list[int]) -> np.ndarray:
     majority_vote = []
+    if len(all_annotation_data) == 0:
+        return np.empty(0)
+    
     for i in range(all_annotation_data.shape[1]):
         if i in valid_ids:
             majority_vote.append(all_annotation_data[i, :])
@@ -133,7 +136,8 @@ def get_all_data_for_participant(
                         f"participant {participant_id} marked missing by {response.journeys[0].prolific_id}"
                     )
                 else:
-                    raise ValueError("Data error")
+                    pass
+                    # raise ValueError("Data error")
 
     participant_annotations = [
         participant_annotation[:min_len]
@@ -149,18 +153,30 @@ def main(
     multithreaded: bool = True,
     min_aggrement: float = 0.8,
 ):
-    all_annotation_data = []
+    print("\n\n")
+    all_annotation_data: list[HITData] = []
     for database_file in database_files:
         all_annotation_data.append(
             load_json_data(database_file, num_annotated_participants)
         )
+        for _ in range(3):
+            print("---------------------------------------------------------------------")
+        print(all_annotation_data[-1].global_unique_id)
+        for _ in range(3):
+            print("---------------------------------------------------------------------")
 
     total_agreement: dict[str, AggrementData] = {}
     for participant_id in range(1, num_annotated_participants + 1):
         print("\nParticipant", participant_id)
+        if participant_id in [38, 39]:
+            print("Skipping participant", participant_id)
+            continue
         prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
             participant_id, all_annotation_data, total_agreement
         )
+        if len(participant_data) == 0:
+            print("No data found for participant", participant_id)
+            continue
         vote_data = majority_vote(participant_data, range(len(prolific_ids)))
         agreement = np.sum(vote_data == participant_data, axis=1) / vote_data.shape[0]
 
@@ -170,7 +186,7 @@ def main(
                 total_agreement[annotator] = AggrementData([])
             # Participant 2 has good visibility and overall good aggrement with the annotators, so it's good to use as
             # a reference for screening the good annotators
-            if participant_id == 2:
+            if True: #participant_id == 2:
                 total_agreement[annotator].data.append(agreement_i)
 
         participant_data = np.concatenate((participant_data, vote_data[np.newaxis, :]))
@@ -216,11 +232,13 @@ def main(
 
 
 if __name__ == "__main__":
-    data_files = [
-        # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v0.json"),
-        # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v1.json"),
-        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.covfee.json"),
-        Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v02.covfee.json"),
-    ]
+    # data_files = [
+    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v0.json"),
+    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v1.json"),
+    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.covfee.json"),
+    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v02.covfee.json"),
+    #     Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v03.covfee.json"),
+    # ]
 
-    main(data_files, num_annotated_participants=3, do_plots=False, min_aggrement=0.7)
+    for path in Path("/home/era/Downloads/results/").iterdir():
+        main([path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7)
