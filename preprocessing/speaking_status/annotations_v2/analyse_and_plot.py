@@ -162,6 +162,7 @@ def main(
         for _ in range(3):
             print("---------------------------------------------------------------------")
         print(all_annotation_data[-1].global_unique_id)
+        print(database_file)
         for _ in range(3):
             print("---------------------------------------------------------------------")
 
@@ -240,5 +241,5 @@ if __name__ == "__main__":
     #     Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v03.covfee.json"),
     # ]
 
-    for path in Path("/home/era/Downloads/results/").iterdir():
+    for path in Path("/home/era/code/covfee-repos/covfee_databases/json_batch_03/").iterdir():
         main([path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7)
