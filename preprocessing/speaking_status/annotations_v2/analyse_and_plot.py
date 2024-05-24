@@ -233,13 +233,19 @@ def main(
 
 
 if __name__ == "__main__":
-    # data_files = [
-    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v0.json"),
-    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v1.json"),
-    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v01.covfee.json"),
-    #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v02.covfee.json"),
-    #     Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v03.covfee.json"),
-    # ]
+    # 1. Download results.zip from the the covfee admin panel, assuming it's on ~/home/Downloads
+    # 2. Run extract extract_json_files_from_results_zip_downloaded_from_covfee_admin.py
+    # 3. Run this script
+    # 4. Check the output in analysis_output.txt
+    import os
+    outfile = Path(os.path.join(os.path.dirname(__file__), "analysis_output.txt"))
+    with open(outfile, "w") as f:
+        import sys
+        sys.stdout = f
 
-    for path in Path("/home/era/code/covfee-repos/covfee_databases/json_batch_03/").iterdir():
-        main([path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7)
+        for path in Path(os.path.join(os.path.dirname(__file__), "json_files")).iterdir():
+            main(
+                [path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7
+            )
+
+
