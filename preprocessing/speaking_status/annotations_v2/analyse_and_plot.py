@@ -17,6 +17,9 @@ from data_model import (
 from copy import deepcopy
 
 
+incomplete_annotations_per_study: dict[str, dict[str, int]] = {}
+
+
 def savefig(save_dir: Path, fig: Figure, ax: Axes, i: int, end_idx: int):
     ax.legend()
 
@@ -82,7 +85,7 @@ def majority_vote(all_annotation_data: np.ndarray, valid_ids: list[int]) -> np.n
     majority_vote = []
     if len(all_annotation_data) == 0:
         return np.empty(0)
-    
+
     for i in range(all_annotation_data.shape[1]):
         if i in valid_ids:
             majority_vote.append(all_annotation_data[i, :])
@@ -106,6 +109,7 @@ def get_all_data_for_participant(
     all_annotation_data: list[HITData],
     total_agreement: dict[str, AggrementData],
 ) -> tuple[np.ndarray, np.ndarray, dict[str, AggrementData]]:
+    global incomplete_annotations_per_study
     total_agreement = deepcopy(total_agreement)
     participant_annotations = []
     prolific_ids = []
@@ -135,8 +139,21 @@ def get_all_data_for_participant(
                     print(
                         f"participant {participant_id} marked missing by {response.journeys[0].prolific_id}"
                     )
-                else:
-                    pass
+                elif len(participant_annotation.data) == 0:
+                    study_id: str = response.journeys[0].prolific_study_id
+                    annotator_id: str = response.journeys[0].prolific_id
+                    print(
+                        f"INCOMPLETE ANNOTATION by {response.journeys[0].prolific_id} from study {response.journeys[0].prolific_study_id} "
+                    )
+                    if study_id not in incomplete_annotations_per_study:
+                        incomplete_annotations_per_study[study_id] = {}
+
+                    incomplete_annotations_per_study[study_id][annotator_id] = (
+                        incomplete_annotations_per_study[study_id].get(
+                            annotator_id, 0
+                        )
+                        + 1
+                    )
                     # raise ValueError("Data error")
 
     participant_annotations = [
@@ -154,23 +171,28 @@ def main(
     min_aggrement: float = 0.8,
 ):
     print("\n\n")
+    global incomplete_annotations_per_study
     all_annotation_data: list[HITData] = []
     for database_file in database_files:
         all_annotation_data.append(
             load_json_data(database_file, num_annotated_participants)
         )
         for _ in range(3):
-            print("---------------------------------------------------------------------")
+            print(
+                "---------------------------------------------------------------------"
+            )
         print(all_annotation_data[-1].global_unique_id)
         print(database_file)
         for _ in range(3):
-            print("---------------------------------------------------------------------")
+            print(
+                "---------------------------------------------------------------------"
+            )
 
     total_agreement: dict[str, AggrementData] = {}
     for participant_id in range(1, num_annotated_participants + 1):
         print("\nParticipant", participant_id)
         if participant_id in [38, 39]:
-            print("Skipping participant", participant_id)
+            # print("Skipping participant", participant_id)
             continue
         prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
             participant_id, all_annotation_data, total_agreement
@@ -178,6 +200,9 @@ def main(
         if len(participant_data) == 0:
             print("No data found for participant", participant_id)
             continue
+
+        # if participant_data.shape[0] != 3:
+        #     print("WARNING: not getting 3 annotations")
         vote_data = majority_vote(participant_data, range(len(prolific_ids)))
         agreement = np.sum(vote_data == participant_data, axis=1) / vote_data.shape[0]
 
@@ -187,7 +212,7 @@ def main(
                 total_agreement[annotator] = AggrementData([])
             # Participant 2 has good visibility and overall good aggrement with the annotators, so it's good to use as
             # a reference for screening the good annotators
-            if True: #participant_id == 2:
+            if True:  # participant_id == 2:
                 total_agreement[annotator].data.append(agreement_i)
 
         participant_data = np.concatenate((participant_data, vote_data[np.newaxis, :]))
@@ -201,7 +226,7 @@ def main(
                 multithreaded=multithreaded,
             )
 
-    print("\nAggregate results")
+    print("\nAggregate results", all_annotation_data[-1].global_unique_id)
     for annotator, agreement in total_agreement.items():
         agreement.mean = np.nanmean(agreement.data)
         agreement.std = np.nanstd(agreement.data)
@@ -231,6 +256,8 @@ def main(
             i += 1
     print(f"Total {i} annotators")
 
+    
+
 
 if __name__ == "__main__":
     # data_files = [
@@ -240,6 +267,55 @@ if __name__ == "__main__":
     #     # Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v02.covfee.json"),
     #     Path("/home/era/code/covfee-repos/covfee_databases/database_pilot_v03.covfee.json"),
     # ]
+    import os
+    home_dir = os.path.expanduser("~")
+    outfile = Path(os.path.join(os.path.dirname(__file__), "analysis_output.txt"))
+    with open(outfile, "w") as f:
+        import sys
+        import math
 
-    for path in Path("/home/era/code/covfee-repos/covfee_databases/json_batch_03/").iterdir():
-        main([path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7)
+        sys.stdout = f
+
+        for path in Path(os.path.join(os.path.dirname(__file__), "json_files")).iterdir():
+            main(
+                [path], num_annotated_participants=48, do_plots=False, min_aggrement=0.7
+            )
+        if len(incomplete_annotations_per_study) > 0:
+            print("Incomplete annotations:")
+            for study_id, incomplete_participants_count_per_annotator in incomplete_annotations_per_study.items():
+                median_time_in_minutes = 2*60 + 24
+                print(f"======== STUDY {study_id} =========== ")
+                print(f"Study URL: https://app.prolific.com/researcher/workspaces/studies/{study_id}")
+                print(f"Study submissions URL: https://app.prolific.com/researcher/workspaces/studies/{study_id}/submissions")
+                for prolific_id, incomplete_annotations_count in sorted(incomplete_participants_count_per_annotator.items(), key=lambda item: item[1], reverse=True):
+                    covfee_url = f"https://covfee.ewi.tudelft.nl/covfee/prolific?PROLIFIC_PID={prolific_id}&STUDY_ID={study_id}&SESSION_ID=0i5dygk8q24"
+                    incomplete_percentage = 100*incomplete_annotations_count/48
+                    bonus_payment = max(21.78 * incomplete_annotations_count/48, 4)
+                    pending_time = median_time_in_minutes * incomplete_annotations_count/48
+                    pending_time_hours = math.floor(pending_time // 60)
+                    pending_time_hours = f"{pending_time_hours} hour " if pending_time_hours > 0 else ""
+                    pending_time_minutes = math.ceil(pending_time % 60)
+                    print(">>>>>>>>>>>>>>>>>>>>>>")
+                    print(f"- [{incomplete_annotations_count}] - Annotator: {prolific_id} has {incomplete_annotations_count} incomplete annotations")
+                    print(f"  Covfee URL: {covfee_url}")
+
+
+                    print(f"""
+
+Dear {prolific_id},
+
+We need your help again, and we are happy to offer a BONUS of £{math.ceil(bonus_payment)} if you help us a bit more with this study.
+
+After reviewing the data you submitted we noticed that {incomplete_percentage:.1f}% of the participants appear to be incomplete, likely due to a technical problem.
+
+Would you please help us finish the incomplete annotations? This should hopefully not take more than {pending_time_hours}{pending_time_minutes} minutes of your time.
+
+If so, please go to the link below, and continue the annotation process but only for those participants missing the completion checkmark.
+
+If you can't help us with this, please let us know so we can find another solution. Otherwise, when you are finished, please let us know.
+
+Thank you in advance for your help,
+
+Link: {covfee_url}
+                          """)
+        
