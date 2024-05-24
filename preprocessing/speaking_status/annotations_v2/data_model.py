@@ -69,7 +69,7 @@ AnnotatedNDArray = Annotated[np.ndarray, _NDArrayPydanticAnnotation]
 
 
 class State(BaseModel):
-    selectedAnnotationIndex: int
+    selectedAnnotationIndex: Optional[int]
     mediaPaused: Optional[bool]
 
 
@@ -82,6 +82,7 @@ class Annotation(BaseModel):
 class JourneyInResponse(BaseModel):
     global_unique_id: str
     prolific_id: Optional[str]
+    prolific_study_id: Optional[str]
 
 
 class Response(BaseModel):
