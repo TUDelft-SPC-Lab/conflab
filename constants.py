@@ -46,7 +46,24 @@ vid_deltas = {
     'vid3_seg6':  timedelta(minutes=10),
 }
 
+camera_raw_to_segment = {
+    "cam2": {2: "GH020003.MP4", 3: "GH030003.MP4", 4: "GH040003.MP4", 5: "GH050003.MP4"},
+    "cam4": {2: "GH020010.MP4", 3: "GH030010.MP4", 4: "GH040010.MP4", 5: "GH050010.MP4"},
+    "cam6": {2: "GH020162.MP4", 3: "GH030162.MP4", 4: "GH040162.MP4", 5: "GH050162.MP4"},
+    "cam8": {2: "GH020165.MP4", 3: "GH030165.MP4", 4: "GH040165.MP4", 5: "GH050165.MP4"},
+    "cam10": {2: "GH020009.MP4", 3: "GH030009.MP4", 4: "GH040009.MP4", 5: "GH050009.MP4"},
+}
+
+camera_was_rotated_map = {
+    "cam2": False,
+    "cam4": True,
+    "cam6": False,
+    "cam8": False,
+    "cam10": False,
+}
+
 annotated_section_start = vid_timecodes['vid2_seg8']
 annotated_section_end = vid3_start + timedelta(minutes=12)
 vid3_offset_from_vid2 = vid3_start - annotated_section_start
 annotated_section_len = (annotated_section_end - annotated_section_start)
+
