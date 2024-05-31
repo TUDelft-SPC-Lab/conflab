@@ -11,19 +11,14 @@ from constants import (
     vid2_start,
     vid3_start,
     annotated_section_start,
+    camera_raw_to_segment,
 )
 from datetime import datetime, timedelta
 
 # def tqdm(iterable, desc=None, total=None, leave=True):
 #     return iterable
 
-camera_raw_to_segment = {
-    "cam2": {2: "GH020003.MP4", 3: "GH030003.MP4"},
-    "cam4": {2: "GH020010.MP4", 3: "GH030010.MP4"},
-    "cam6": {2: "GH020162.MP4", 3: "GH030162.MP4"},
-    "cam8": {2: "GH020165.MP4", 3: "GH030165.MP4"},
-    "cam10": {2: "GH020009.MP4", 3: "GH030009.MP4"},
-}
+
 
 camera_raw_timecodes = {
     "cam2": {2: None, 3: None},
