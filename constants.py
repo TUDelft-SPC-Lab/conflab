@@ -35,6 +35,17 @@ vid_timecodes = {
     'vid3_seg6': vid3_start + timedelta(minutes=10),
 }
 
+vid_deltas = {
+    'vid2_seg8': timedelta(minutes=14),
+    'vid2_seg9':  timedelta(minutes=16),
+    'vid3_seg1':  timedelta(minutes=0),
+    'vid3_seg2':  timedelta(minutes=2),
+    'vid3_seg3':  timedelta(minutes=4),
+    'vid3_seg4': timedelta(minutes=6),
+    'vid3_seg5':  timedelta(minutes=8),
+    'vid3_seg6':  timedelta(minutes=10),
+}
+
 annotated_section_start = vid_timecodes['vid2_seg8']
 annotated_section_end = vid3_start + timedelta(minutes=12)
 vid3_offset_from_vid2 = vid3_start - annotated_section_start

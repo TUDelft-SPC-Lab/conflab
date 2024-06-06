@@ -3,3 +3,8 @@
 *.ckpt
 /baselines/speaking_status/pose
 tracks.pkl
+**/*/plots/*
+**/*/video_with_audio/*
+**/*/only_audio/*
+preprocessing/speaking_status/annotations_v2/json_files/*
+preprocessing/speaking_status/annotations_v2/analysis_output.txt
