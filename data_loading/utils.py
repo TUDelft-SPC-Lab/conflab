@@ -1,14 +1,14 @@
 from datetime import timedelta
 from typing import Tuple
-from conflab.constants import vid2_start, vid3_start, vid_timecodes
+from conflab.constants import CAM4_VID2_START_TIMECODE, CAM4_VID3_START_TIMECODE, cam4_vid_timecodes
 
 def time_to_seg(time: float, sr=59.94) -> Tuple[int, float]:
     '''Converts a time (s) in the annotated section of the dataset 
     into a segment number and offset that can be used to localize
     a window within the loaded tracks
     '''
-    vid2_seg8_start = vid2_start + timedelta(minutes=14)
-    vid2_len = (vid3_start - vid2_seg8_start).total_seconds()
+    vid2_seg8_start = CAM4_VID2_START_TIMECODE + timedelta(minutes=14)
+    vid2_len = (CAM4_VID3_START_TIMECODE - vid2_seg8_start).total_seconds()
     if time < vid2_len:
         seg = int(time // 120) # 2 min segments
         offset = int((time % 120) * sr)
@@ -22,8 +22,8 @@ def seg_to_offset(seg: int) -> float:
     if seg <= 1:
         return seg*120
     else:
-        vid2_seg8_start = vid2_start + timedelta(minutes=14)
-        vid2_len = (vid3_start - vid2_seg8_start).total_seconds()
+        vid2_seg8_start = CAM4_VID2_START_TIMECODE + timedelta(minutes=14)
+        vid2_len = (CAM4_VID3_START_TIMECODE - vid2_seg8_start).total_seconds()
         return vid2_len + (seg-2)*120
 
 

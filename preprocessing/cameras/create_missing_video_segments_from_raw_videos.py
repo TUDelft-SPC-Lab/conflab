@@ -19,56 +19,15 @@ sys.path.insert(0, str(grandparent_dir))
 from constants import (  # noqa: E402
     camera_raw_to_segment,
     camera_was_rotated_map,
+    CAMERAS_OF_INTEREST,
+    RAW_VIDEOS_FOLDER_IN_STAFF_BULK,
+    VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK,
+    VIDEO_SEGMENTS_FOLDER_IN_LOCAL,
+    check_if_staff_bulk_is_mounted,
 )
-
-RAW_VIDEOS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/raw/video/overhead/"
-)
-VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/processed/annotation/videoSegments/"
-)
-VIDEO_SEGMENTS_FOLDER_IN_LOCAL = Path("/home/kenneth/Videos/conflab/videoSegments/")
-
-
-def check_if_staff_bulk_is_mounted():
-    if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
-        raise FileNotFoundError(
-            "Mount the bulk storage first in /mnt/staff-bulk\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk /mnt/staff-bulk/"
-        )
-
+from ffmpeg_utils import get_video_duration_in_seconds, subprocess_run_with_guardfile  # noqa: E402
 
 check_if_staff_bulk_is_mounted()
-
-CAMERAS_OF_INTEREST = [2, 4, 6, 8, 10]
-
-
-def get_video_duration_in_seconds(file_path: Path) -> float:
-    cmd = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        file_path,
-    ]
-    output = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    return float(output.stdout)
-
-
-def subprocess_run_with_guardfile(cmd: list[str], guardfile_path: Path):
-    """
-    Runs a subprocess command, and writes the command to a guardfile, which is deleted after subprocess runs
-    successfully as a way to monitor whether there was a crash mid-processing, or a forced stop.
-
-    """
-    running_message: str = "Running: " + " ".join(cmd)
-    print(running_message)
-    with open(guardfile_path, "w") as f:
-        f.write(running_message)
-    subprocess.run(cmd)
-    os.remove(guardfile_path)
 
 
 # We iterate over all the cameras for which we are interested in extracting segments
@@ -118,14 +77,14 @@ for camera_index in CAMERAS_OF_INTEREST:
                         parents=True, exist_ok=True
                     )
                     # Reference from /mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/raw/video/overhead/cam04/videoRot.sbatch
-                    cmd = [ 
+                    cmd = [
                         "ffmpeg",
                         "-i",
                         str(raw_video_file_path),
                         "-c",
                         "copy",
                         "-metadata:s:v:0",
-                        'rotate=0',
+                        "rotate=0",
                         str(raw_rotated_video_file_path_in_local),
                     ]
                     print("================= ROTATING =======================")
@@ -209,7 +168,7 @@ for camera_index in CAMERAS_OF_INTEREST:
                     else "00:00:00"
                 )
                 # The slow seek position is 20 seconds after the fast seek position, i.e.,
-                # it is defined relative to the fast seek position. 
+                # it is defined relative to the fast seek position.
                 slow_seek_position = "00:00:20" if segment_index > 1 else "00:00:00"
                 # Our desired position is fast_seek_position + slow_seek_position
                 cmd = [
