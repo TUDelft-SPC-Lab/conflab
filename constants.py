@@ -103,23 +103,23 @@ annotated_section_len = annotated_section_end - annotated_section_start
 
 # Paths to the raw dataset in the staff-bulk storage, mounted in the current PC.
 RAW_VIDEOS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/raw/video/overhead/"
+    "/data/conflab/data_raw/cameras/"
 )
 VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/processed/annotation/videoSegments/"
+    "/data/conflab/data_processed/cameras/video_segments/"
 )
 SYNCED_AUDIO_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/audio/synced/"
+    "/data/conflab/data_raw/audio/synced/"
 )
 
 def check_if_staff_bulk_is_mounted():
     if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
         raise FileNotFoundError(
-            "Mount the bulk storage first in /mnt/staff-bulk\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk /mnt/staff-bulk/"
+            "Mount the bulk storage first in /mnt/staff-bulk\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/cameras/video/ /data/conflab/data_raw/cameras/"
         )
 
 
 # Paths to the local storage
-VIDEO_SEGMENTS_FOLDER_IN_LOCAL = Path.home() / "Videos" / "conflab" / "videoSegments"
+VIDEO_SEGMENTS_FOLDER_IN_LOCAL = Path("/data/conflab/data_processed/cameras/video_segments/")
 SYNCED_AUDIO_FOLDER_IN_LOCAL = Path.home() / "Videos" / "conflab" / "audio" / "synced"
 AUDIO_SEGMENTS_PER_PARTICIPANT_FOLDER_FOR_ALL_CAMS_IN_LOCAL = Path.home() / "Videos" / "conflab" / "audio" / "per_participant"
