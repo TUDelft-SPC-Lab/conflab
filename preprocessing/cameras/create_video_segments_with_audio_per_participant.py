@@ -107,9 +107,9 @@ for camera_index in tqdm(
     audio_segments_per_participant_folder.mkdir(parents=True, exist_ok=True)
 
     video_with_audio_or_only_audio_subfolder = (
-        "video_with_audio"
+        "segments-with-audio-per-participant"
         if not PRODUCE_VIDEO_PER_PARTICIPANT_WITH_BLACK_VIDEO
-        else "only_audio"
+        else "segments-only-audio-per-participant"
     )
     video_segments_with_participant_audio_for_camera_folder_path = (
         VIDEO_SEGMENTS_FOLDER_IN_LOCAL
