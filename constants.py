@@ -38,11 +38,13 @@ CAM4_VID3_START_TIMECODE = datetime(
 )  # start timecode of vid3 : 15:07:13:58
 
 # All synched audio files start at the same time
-TIMECODE_FOR_ALL_SYNCED_PARTICIPANT_AUDIO_WAV_FILES = datetime.fromtimestamp(1571927168.657)
+TIMECODE_FOR_ALL_SYNCED_PARTICIPANT_AUDIO_WAV_FILES = datetime.fromtimestamp(
+    1571927168.657
+)
 
 NUMBER_OF_PARTICIPANTS_WITH_WAV_FILE: int = 50
 PARTICIPANTS_IDS_TO_IGNORE: list[int] = [38, 39]
-CAMERAS_OF_INTEREST = [4, 2, 6, 8, 10]
+CAMERAS_OF_INTEREST = [2, 4, 6, 8, 10]
 
 cam4_vid_timecodes: dict[str, datetime] = {
     "vid2_seg8": CAM4_VID2_START_TIMECODE + timedelta(minutes=14),
@@ -55,7 +57,7 @@ cam4_vid_timecodes: dict[str, datetime] = {
     "vid3_seg6": CAM4_VID3_START_TIMECODE + timedelta(minutes=10),
 }
 
-camera_raw_to_segment = {
+camera_id_to_dict_of_video_index_to_raw_video_file_basename = {
     "cam2": {
         2: "GH020003.MP4",
         3: "GH030003.MP4",
@@ -102,24 +104,27 @@ vid3_offset_from_vid2 = CAM4_VID3_START_TIMECODE - annotated_section_start
 annotated_section_len = annotated_section_end - annotated_section_start
 
 # Paths to the raw dataset in the staff-bulk storage, mounted in the current PC.
-RAW_VIDEOS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/raw/video/overhead/"
+STAFF_BULK_MOUNT_PATH = Path("/mnt/staff-bulk")
+RAW_VIDEOS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/raw/video/overhead/"
 )
-VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/processed/annotation/videoSegments/"
+VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/processed/annotation/videoSegments/"
 )
-SYNCED_AUDIO_FOLDER_IN_STAFF_BULK = Path(
-    "/mnt/staff-bulk/ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/audio/synced/"
+SYNCED_AUDIO_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/audio/synced/"
 )
 
 def check_if_staff_bulk_is_mounted():
     if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
         raise FileNotFoundError(
-            "Mount the bulk storage first in /mnt/staff-bulk\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk /mnt/staff-bulk/"
+            f"Mount the bulk storage first in {STAFF_BULK_MOUNT_PATH}\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk {STAFF_BULK_MOUNT_PATH}"
         )
 
 
 # Paths to the local storage
 VIDEO_SEGMENTS_FOLDER_IN_LOCAL = Path.home() / "Videos" / "conflab" / "videoSegments"
 SYNCED_AUDIO_FOLDER_IN_LOCAL = Path.home() / "Videos" / "conflab" / "audio" / "synced"
-AUDIO_SEGMENTS_PER_PARTICIPANT_FOLDER_FOR_ALL_CAMS_IN_LOCAL = Path.home() / "Videos" / "conflab" / "audio" / "per_participant"
+AUDIO_SEGMENTS_PER_PARTICIPANT_FOLDER_FOR_ALL_CAMS_IN_LOCAL = (
+    Path.home() / "Videos" / "conflab" / "audio" / "per_participant"
+)
