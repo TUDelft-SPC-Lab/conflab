@@ -8,7 +8,7 @@ grandparent_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(grandparent_dir))
 
 from constants import (  # noqa: E402
-    camera_raw_to_segment,
+    camera_id_to_dict_of_video_index_to_raw_video_file_basename,
     CAMERAS_OF_INTEREST,
     TIMECODE_FOR_ALL_SYNCED_PARTICIPANT_AUDIO_WAV_FILES,
     RAW_VIDEOS_FOLDER_IN_STAFF_BULK,
@@ -43,6 +43,41 @@ timecodes_of_4G_raw_videos_for_cam_index: dict[int, dict[int, datetime]] = defau
     dict
 )
 
+
+def extract_timecode_from_conflab_raw_go_pro_video_metadata_from_cam_and_video_index(
+    camera_index: int, video_index: int
+) -> datetime:
+    raw_video_file_path = (
+        RAW_VIDEOS_FOLDER_IN_STAFF_BULK
+        / f"cam{camera_index:02}"
+        / camera_id_to_dict_of_video_index_to_raw_video_file_basename[
+            f"cam{camera_index}"
+        ][video_index]
+    )
+    return extract_timecode_from_conflab_raw_go_pro_video_metadata(raw_video_file_path)
+
+
+# We first check whether this system is retriving timecodes consistent with those known
+# to be correct. This is a sanity check, as we have observed issues with some systems.
+problem_with_ffprobe_timecode_extraction_found: bool = (
+    extract_timecode_from_conflab_raw_go_pro_video_metadata_from_cam_and_video_index(
+        camera_index=4, video_index=2
+    )
+    != CAM4_VID2_START_TIMECODE
+    or extract_timecode_from_conflab_raw_go_pro_video_metadata_from_cam_and_video_index(
+        camera_index=4, video_index=3
+    )
+    != CAM4_VID3_START_TIMECODE
+)
+assert not problem_with_ffprobe_timecode_extraction_found, """
+FATAL ISSUE! The timecode being extracted by ffprobe seems inconsistent with
+the few reference values manually extracted for conflab and hardcoded in constants.py.
+This may be an issue with ffmpeg/ffprobe, and this problem has been observed in a subset
+of PCs, but not in all of them. Try fixing your system or try another PC. We have no
+clue what is causing this issue!!
+"""
+
+
 if CREATE_CSV_FILE_WITH_TIMECODES:
     csv_file = open(Path(__file__).resolve().parents[1] / "timecodes.csv", "w")
     csv_file.write(
@@ -66,38 +101,14 @@ for camera_index in tqdm(
     CAMERAS_OF_INTEREST, desc="Camera", disable=not DISPLAY_PROGRESS_BARS
 ):
     # We extract the timecodes embedded in the raw videos for all 4GB segments
-    for video_index, raw_video_file_basename in camera_raw_to_segment[
+    for video_index in camera_id_to_dict_of_video_index_to_raw_video_file_basename[
         f"cam{camera_index}"
-    ].items():
-        raw_video_file_path = (
-            RAW_VIDEOS_FOLDER_IN_STAFF_BULK
-            / f"cam{camera_index:02}"
-            / raw_video_file_basename
-        )
-
+    ].keys():
         timecodes_of_4G_raw_videos_for_cam_index[camera_index][video_index] = (
-            extract_timecode_from_conflab_raw_go_pro_video_metadata(raw_video_file_path)
+            extract_timecode_from_conflab_raw_go_pro_video_metadata_from_cam_and_video_index(
+                camera_index=camera_index, video_index=video_index
+            )
         )
-
-        if camera_index == 4 and video_index in [2, 3]:
-            reference_timecode = (
-                CAM4_VID2_START_TIMECODE
-                if video_index == 2
-                else CAM4_VID3_START_TIMECODE
-            )
-            problem_with_ffprobe_timecode_extraction_found: bool = (
-                timecodes_of_4G_raw_videos_for_cam_index[camera_index][video_index]
-                != reference_timecode
-            )
-
-            assert not problem_with_ffprobe_timecode_extraction_found, f"""
-            FATAL ISSUE! The timecode being extracted by ffprobe seems inconsistent with
-            the few reference values manually extracted for conflab and hardcoded in constants.py.
-            This may be an issue with ffmpeg/ffprobe, and this problem has been observed in a subset
-            of PCs, but not in all of them. Try fixing your system or try another PC. We have no
-            clue what is causing this issue!!
-            Extracted: {timecodes_of_4G_raw_videos_for_cam_index[camera_index][video_index]} vs Reference: {reference_timecode}
-            """
 
     # We create the folder for the audio segments per participant
     audio_segments_per_participant_folder = (
@@ -122,14 +133,21 @@ for camera_index in tqdm(
 
     # Now we traverse raw videos of 4G, associated to the given camera_index
     for video_index, raw_video_file_basename in tqdm(
-        camera_raw_to_segment[f"cam{camera_index}"].items(),
+        camera_id_to_dict_of_video_index_to_raw_video_file_basename[
+            f"cam{camera_index}"
+        ].items(),
         desc=f"-Raw videos on cam{camera_index}",
         leave=False,
         disable=not DISPLAY_PROGRESS_BARS,
     ):
-        raw_video_basename = camera_raw_to_segment[f"cam{camera_index}"][video_index]
+        raw_video_basename = (
+            camera_id_to_dict_of_video_index_to_raw_video_file_basename[
+                f"cam{camera_index}"
+            ][video_index]
+        )
         # Now we traverse over the video segments, i.e., the videos clipped in 2 minutes
-        # segments, extracted from each raw video segment of 4G
+        # segments, extracted from each raw video segment of 4G, that were created by the
+        # create_video_segments_from_raw_videos.py script in this folder
         for segment_index in tqdm(
             range(1, 10),
             desc=f"--Segments on {raw_video_basename}",
@@ -153,9 +171,7 @@ for camera_index in tqdm(
                     / f"cam{camera_index}"
                     / video_segment_file_basename
                 )
-            #
 
-            # The start of the segment is the the start of the video plus the delta for the segment
             if not video_segment_path.exists():
                 continue
 
@@ -181,7 +197,9 @@ for camera_index in tqdm(
                         [
                             f"cam{camera_index}",
                             str(TIMECODE_FOR_ALL_SYNCED_PARTICIPANT_AUDIO_WAV_FILES),
-                            camera_raw_to_segment[f"cam{camera_index}"][video_index],
+                            camera_id_to_dict_of_video_index_to_raw_video_file_basename[
+                                f"cam{camera_index}"
+                            ][video_index],
                             str(
                                 timecodes_of_4G_raw_videos_for_cam_index[camera_index][
                                     video_index
@@ -228,8 +246,6 @@ for camera_index in tqdm(
                     video_segments_with_participant_audio_for_camera_folder_path
                     / f"{video_segment_path.stem}-participant{participant_index}.mp4"
                 )
-
-                # Crop the audio to the same length and offset as the video
 
                 ######## Now we execute the ffmpeg commands to clip the audio and merge with the video #############
 
@@ -287,8 +303,8 @@ for camera_index in tqdm(
                         "-i", str(video_segment_path),
                         "-i", str(video_segment_wav_audio_for_participant_file_path),
                         "-c:v", "copy",
-                        "-map", "0:v:0",
-                        "-map", "1:a:0",
+                        "-map", "0:v:0", # For the video stream use the input video segment file
+                        "-map", "1:a:0", # For the audio stream use the input audio file
                         str(video_segment_with_participant_audio_path),
                         "-y",
                     ]

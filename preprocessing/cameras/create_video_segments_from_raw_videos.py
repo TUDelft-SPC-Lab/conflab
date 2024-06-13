@@ -17,7 +17,7 @@ grandparent_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(grandparent_dir))
 
 from constants import (  # noqa: E402
-    camera_raw_to_segment,
+    camera_id_to_dict_of_video_index_to_raw_video_file_basename,
     camera_was_rotated_map,
     CAMERAS_OF_INTEREST,
     RAW_VIDEOS_FOLDER_IN_STAFF_BULK,
@@ -32,12 +32,11 @@ check_if_staff_bulk_is_mounted()
 
 # We iterate over all the cameras for which we are interested in extracting segments
 for camera_index in CAMERAS_OF_INTEREST:
-    raw_videos_for_cam = camera_raw_to_segment[f"cam{camera_index}"]
     camera_was_rotated = camera_was_rotated_map[f"cam{camera_index}"]
 
     # Then we iterate over all the raw videos for the given camera, each will be referred
     # with a specific video_index, when generating the output videos. For example vid{video_index}-seg1.mp4
-    for video_index, raw_video_file_basename in camera_raw_to_segment[
+    for video_index, raw_video_file_basename in camera_id_to_dict_of_video_index_to_raw_video_file_basename[
         f"cam{camera_index}"
     ].items():
         if video_index < 3:
