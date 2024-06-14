@@ -115,17 +115,18 @@ def remove_partial_annotations_(
     annotation_data: HITData, num_annotated_participants: int
 ) -> None:
     to_delete = []
+    prolific_ids_missing_annotations = set()
     for i, node in annotation_data.nodes.items():
         for response in node.responses:
             if len(response.annotations) != num_annotated_participants:
                 raise ValueError(
                     f"Expected {num_annotated_participants} annotations, got {len(response.annotations)} for {response.journeys[0].prolific_id} "
                 )
-                
+
             for annotation in response.annotations.values():
                 if annotation.data is None:
-                    print(
-                        f"{response.journeys[0].prolific_id} did not annotate all the participants"
+                    prolific_ids_missing_annotations.add(
+                        response.journeys[0].prolific_id
                     )
                     to_delete.append(i)
                     break
@@ -134,6 +135,19 @@ def remove_partial_annotations_(
 
     for key in to_delete:
         del annotation_data.nodes[key]
+
+    if prolific_ids_missing_annotations:
+        if (
+            len(prolific_ids_missing_annotations) == 1
+            and list(prolific_ids_missing_annotations)[0] is None
+        ):
+            raise ValueError(
+                "Not annotated. No prolific annotator has picked the journey"
+            )
+        else:
+            raise ValueError(
+                f"{prolific_ids_missing_annotations} did not annotate all the participants"
+            )
 
 
 def check_single_journey(annotation_data: HITData) -> None:
@@ -149,6 +163,6 @@ def load_json_data(database_file: Path, num_annotated_participants: int) -> HITD
         try:
             remove_partial_annotations_(annotation_data, num_annotated_participants)
         except ValueError as ex:
-            print(f"Error in {database_file}: {ex}")
+            print(f"Error in {database_file.name}: {ex}")
         check_single_journey(annotation_data)
         return annotation_data
