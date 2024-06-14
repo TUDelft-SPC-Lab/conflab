@@ -10,7 +10,7 @@ import threading
 from tqdm import tqdm
 from typing import Optional
 from dataclasses import dataclass
-from data_model import (
+from json_file_data_model import (
     HITData,
     load_json_data,
 )
