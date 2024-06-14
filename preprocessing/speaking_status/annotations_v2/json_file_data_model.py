@@ -1,3 +1,5 @@
+# When the admin panel in covfee is used to export data, it exports a json file per HIT, following
+# the structure defined in this file. This file is used to load the json files into a pydantic model
 from pathlib import Path
 import numpy as np
 import json
@@ -82,7 +84,7 @@ class Annotation(BaseModel):
 class JourneyInResponse(BaseModel):
     global_unique_id: str
     prolific_id: Optional[str]
-    prolific_study_id: Optional[str]
+    prolific_study_id: Optional[str] = None
 
 
 class Response(BaseModel):
@@ -144,6 +146,9 @@ def check_single_journey(annotation_data: HITData) -> None:
 def load_json_data(database_file: Path, num_annotated_participants: int) -> HITData:
     with open(database_file, "r") as f:
         annotation_data = HITData.model_validate(json.load(f))
-        remove_partial_annotations_(annotation_data, num_annotated_participants)
+        try:
+            remove_partial_annotations_(annotation_data, num_annotated_participants)
+        except ValueError as ex:
+            print(f"Error in {database_file}: {ex}")
         check_single_journey(annotation_data)
         return annotation_data
