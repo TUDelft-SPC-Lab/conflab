@@ -33,10 +33,10 @@ def _on_trackback_change(cap: cv2.VideoCapture, frame_index: int):
 
 def add_annotation_square_and_progress(
     frame: np.ndarray,
-    annotations: np.ndarray,
+    annotation_square: np.ndarray,
     frame_index: int,
     total_frames: int,
-    annotations_img_height: int = 20,
+    annotations_img_height: int,
 ) -> np.ndarray:
     """
     Add two square at the bottom of the video showing the annotation values and the current index.
@@ -49,20 +49,6 @@ def add_annotation_square_and_progress(
     frame_width = frame.shape[1]
 
     frame_with_annotations[:frame_height] = frame
-
-    black_square = np.zeros((annotations_img_height, frame_width, 3), dtype=frame.dtype)
-    green_square = np.zeros(
-        (annotations_img_height, frame_width, 3), dtype=frame.dtype
-    ) + np.array([0, 255, 0], dtype=frame.dtype)
-    red_square = np.zeros(
-        (annotations_img_height, frame_width, 3), dtype=frame.dtype
-    ) + np.array([0, 0, 255], dtype=frame.dtype)
-
-    annotation_square = (
-        black_square * (annotations == 0)[np.newaxis, :, np.newaxis]
-        + green_square * (annotations == 1)[np.newaxis, :, np.newaxis]
-        + red_square * (np.isnan(annotations))[np.newaxis, :, np.newaxis]
-    )
 
     frame_with_annotations[-annotations_img_height * 2 : -annotations_img_height] = (
         annotation_square
@@ -82,6 +68,29 @@ def add_annotation_square_and_progress(
     )
 
     return frame_with_annotations
+
+
+def create_annotation_square(
+    annotations: np.ndarray,
+    annotations_img_height: int,
+    frame_width: int,
+    dtype: np.dtype,
+) -> np.ndarray:
+    black_square = np.zeros((annotations_img_height, frame_width, 3), dtype=dtype)
+    green_square = np.zeros(
+        (annotations_img_height, frame_width, 3), dtype=dtype
+    ) + np.array([0, 255, 0], dtype=dtype)
+    red_square = np.zeros(
+        (annotations_img_height, frame_width, 3), dtype=dtype
+    ) + np.array([0, 0, 255], dtype=dtype)
+
+    annotation_square = (
+        black_square * (annotations == 0)[np.newaxis, :, np.newaxis]
+        + green_square * (annotations == 1)[np.newaxis, :, np.newaxis]
+        + red_square * (np.isnan(annotations))[np.newaxis, :, np.newaxis]
+    )
+
+    return annotation_square
 
 
 def main():
@@ -121,8 +130,9 @@ def main():
         _on_trackback_change(cap, frame_index)
 
     cv2.createTrackbar("Frame", window_name, 0, total_frames - 1, on_trackback_change)
+    annotations_img_height = 20 # Size in pixels of the annotation square below the frames
 
-    last_frame = None
+    last_frame, annotation_square = None, None
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -132,16 +142,24 @@ def main():
         frame_index = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
 
         if data_for_participant_in_frame_width is None:
+            frame_width = frame.shape[1]
             data_for_participant_in_frame_width = interpolator_participant(
-                np.linspace(0, len(data_for_participant), frame.shape[1])
+                np.linspace(0, len(data_for_participant), frame_width)
+            )
+            annotation_square = create_annotation_square(
+                annotations=data_for_participant_in_frame_width,
+                annotations_img_height=annotations_img_height,
+                frame_width=frame_width,
+                dtype=frame.dtype,
             )
 
         last_frame = frame
         frame_with_annotations = add_annotation_square_and_progress(
             frame,
-            data_for_participant_in_frame_width,
+            annotation_square,
             frame_index=frame_index,
             total_frames=total_frames,
+            annotations_img_height=annotations_img_height,
         )
 
         cv2.imshow(window_name, frame_with_annotations)
