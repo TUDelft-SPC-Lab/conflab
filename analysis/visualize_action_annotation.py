@@ -167,8 +167,10 @@ def main():
             for interpolators_participant, data_for_participant_i in zip(
                 interpolators_participant, data_for_participant
             ):
+                # Note that some annotations are longer than the video and this ignores all data that
+                # comes after the end of the video. The interpolation on x, happens from [0, total_frames - 1]
                 data_for_participant_in_frame_width = interpolators_participant(
-                    np.linspace(0, len(data_for_participant_i), frame_width)
+                    np.linspace(0, total_frames - 1, frame_width)
                 )
                 annotation_squares.append(
                     create_annotation_square(
