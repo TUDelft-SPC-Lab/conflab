@@ -106,10 +106,11 @@ def get_all_data_for_participant(
     participant_id: int,
     all_annotation_data: list[HITData],
     total_agreement: dict[str, AggrementData],
-) -> tuple[np.ndarray, np.ndarray, dict[str, AggrementData]]:
+) -> tuple[np.ndarray, list[str], np.ndarray, dict[str, AggrementData]]:
     total_agreement = deepcopy(total_agreement)
     participant_annotations = []
     prolific_ids = []
+    prolific_study_ids = []
     min_len = np.inf
     for all_annotation_data_i in all_annotation_data:
         for node in all_annotation_data_i.nodes.values():
@@ -124,6 +125,7 @@ def get_all_data_for_participant(
                 if len(participant_annotation.data) > 1:
                     participant_annotations.append(participant_annotation.data)
                     prolific_ids.append(response.journeys[0].prolific_id)
+                    prolific_study_ids.append(response.journeys[0].prolific_study_id)
                     min_len = min(min_len, len(participant_annotation.data))
                 elif len(participant_annotation.data) == 1:
                     if response.journeys[0].prolific_id not in total_agreement:
@@ -144,7 +146,12 @@ def get_all_data_for_participant(
         participant_annotation[:min_len]
         for participant_annotation in participant_annotations
     ]
-    return np.array(prolific_ids), np.array(participant_annotations), total_agreement
+    return (
+        np.array(prolific_ids),
+        prolific_study_ids,
+        np.array(participant_annotations),
+        total_agreement,
+    )
 
 
 def main(
@@ -156,6 +163,7 @@ def main(
 ):
     print("\n\n")
     all_annotation_data: list[HITData] = []
+    global_unique_id = ""
     for database_file in database_files:
         all_annotation_data.append(
             load_json_data(database_file, num_annotated_participants)
@@ -165,6 +173,7 @@ def main(
                 "---------------------------------------------------------------------"
             )
         print(all_annotation_data[-1].global_unique_id)
+        global_unique_id = all_annotation_data[-1].global_unique_id
         print(database_file)
         for _ in range(3):
             print(
@@ -172,14 +181,20 @@ def main(
             )
 
     total_agreement: dict[str, AggrementData] = {}
+    single_prolific_study_id = ""
     for participant_id in range(1, num_annotated_participants + 1):
         print("\nParticipant", participant_id)
         if participant_id in [38, 39]:
             print("Skipping participant", participant_id)
             continue
-        prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
-            participant_id, all_annotation_data, total_agreement
+        prolific_ids, prolific_study_ids, participant_data, total_agreement = (
+            get_all_data_for_participant(
+                participant_id, all_annotation_data, total_agreement
+            )
         )
+        unique_prolific_study_ids = set(prolific_study_ids)
+        if len(unique_prolific_study_ids) == 1:
+            single_prolific_study_id = list(unique_prolific_study_ids)[0]
         if len(participant_data) == 0:
             print("No data found for participant", participant_id)
             continue
@@ -207,7 +222,9 @@ def main(
                 multithreaded=multithreaded,
             )
 
-    print("\nAggregate results")
+    print(
+        f"\nAggregate results for {global_unique_id} - Study {single_prolific_study_id}"
+    )
     for annotator, agreement in total_agreement.items():
         agreement.mean = np.nanmean(agreement.data)
         agreement.std = np.nanstd(agreement.data)
@@ -218,10 +235,9 @@ def main(
 
     print("\nProlific annotators that marked participants as missing")
     for annotator, agreement in total_agreement.items():
-        if agreement.num_marked_missing > 0:
-            print(
-                f"{annotator}, marked missing {agreement.num_marked_missing} participants out of {num_annotated_participants}"
-            )
+        print(
+            f"{annotator}, marked missing {agreement.num_marked_missing} participants out of {num_annotated_participants}"
+        )
 
     max_missing_threshold = 0
     print(
@@ -248,9 +264,32 @@ if __name__ == "__main__":
     OUTPUT_FILE_TO_REDIRECT_PRINTS: Optional[Path] = (
         Path(__file__).parent / "analysis_output.txt"
     )
+    # UsingMobilePhone_No_Audio_v01_vid2-seg7_annotator_0 Where one annotator is missing
     JSON_FILES_TO_PROCESS_FILTER: Optional[str] = (
-        None  # Example: "Speaking_With_Audio_v01"
+        "UsingMobilePhone_No_Audio_v01"  # Example: "Speaking_With_Audio_v01"
     )
+
+    VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES: list[str] = [
+        # 2 minutes before (2 minutes)
+        "vid2-seg7",
+        # 27 minutes after
+        # vid3 remaining block (5:38 minutes)
+        "vid3-seg7",
+        "vid3-seg8",
+        "vid3-seg9",
+        # vid4 block (17:38 minutes)
+        "vid4-seg1",
+        "vid4-seg2",
+        "vid4-seg3",
+        "vid4-seg4",
+        "vid4-seg5",
+        "vid4-seg6",
+        "vid4-seg7",
+        "vid4-seg8",
+        "vid4-seg9",
+        # vid5 block (2 more minutes)
+        "vid5-seg1",
+    ]
 
     if OUTPUT_FILE_TO_REDIRECT_PRINTS is not None:
         output_file_handle = open(OUTPUT_FILE_TO_REDIRECT_PRINTS, "w")
@@ -260,6 +299,18 @@ if __name__ == "__main__":
         if (
             JSON_FILES_TO_PROCESS_FILTER is not None
             and JSON_FILES_TO_PROCESS_FILTER not in json_file_path.stem
+        ):
+            continue
+
+        import functools
+
+        if not functools.reduce(
+            lambda x, y: x or y,
+            [
+                segment in json_file_path.stem
+                for segment in VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES
+            ],
+            False,
         ):
             continue
         main(
