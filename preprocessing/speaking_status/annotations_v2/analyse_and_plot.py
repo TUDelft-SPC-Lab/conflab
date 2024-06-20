@@ -185,9 +185,10 @@ def main(
             continue
         vote_data = majority_vote(participant_data, range(len(prolific_ids)))
         agreement = np.sum(vote_data == participant_data, axis=1) / vote_data.shape[0]
+        events = np.sum((participant_data[:, 1:] - participant_data[:, :-1]) == 1, axis=1)
 
-        for annotator, agreement_i in zip(prolific_ids, agreement):
-            print(f"annotator {annotator}, agreement {agreement_i*100:2.2f}%")
+        for annotator, agreement_i, events_i in zip(prolific_ids, agreement, events):
+            print(f"annotator {annotator}, agreement {agreement_i*100:2.2f}%, keypress events {events_i}")
             if annotator not in total_agreement:
                 total_agreement[annotator] = AggrementData([])
             # Participant 2 has good visibility and overall good aggrement with the annotators, so it's good to use as
