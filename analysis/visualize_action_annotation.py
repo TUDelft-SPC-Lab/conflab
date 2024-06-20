@@ -26,8 +26,8 @@ sys.path.insert(0, str(grandparent_dir))
 # )
 
 
-def _on_trackback_change(cap: cv2.VideoCapture, frame_index: int):
-    # Set the video capture to the position in the trackback
+def _on_trackbar_change(cap: cv2.VideoCapture, frame_index: int):
+    # Set the video capture to the position in the trackbar
     cap.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
 
 
@@ -147,10 +147,10 @@ def main():
     window_name = f"Participant {participant} {annotation_paths[0].parent.parent.name} {annotation_paths[0].parent.name}"
     cv2.namedWindow(window_name)
 
-    def on_trackback_change(frame_index: int):
-        _on_trackback_change(cap, frame_index)
+    def on_trackbar_change(frame_index: int):
+        _on_trackbar_change(cap, frame_index)
 
-    cv2.createTrackbar("Frame", window_name, 0, total_frames - 1, on_trackback_change)
+    cv2.createTrackbar("Frame", window_name, 0, total_frames - 1, on_trackbar_change)
 
     last_frame, annotation_square = None, None
     while True:
