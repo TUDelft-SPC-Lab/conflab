@@ -264,57 +264,12 @@ if __name__ == "__main__":
     OUTPUT_FILE_TO_REDIRECT_PRINTS: Optional[Path] = (
         Path(__file__).parent / "analysis_output.txt"
     )
-    # UsingMobilePhone_No_Audio_v01_vid2-seg7_annotator_0 Where one annotator is missing
-    JSON_FILES_TO_PROCESS_FILTER: Optional[str] = None 
-    # (
-    #     "UsingMobilePhone_No_Audio_v01"  # Example: "Speaking_With_Audio_v01"
-    # )
-
-    VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES: list[str] = [
-        # 2 minutes before (2 minutes)
-        # "vid2-seg7",
-        # # 27 minutes after
-        # # vid3 remaining block (5:38 minutes)
-        # "vid3-seg7",
-        # "vid3-seg8",
-        # "vid3-seg9",
-        # # vid4 block (17:38 minutes)
-        # "vid4-seg1",
-        # "vid4-seg2",
-        # "vid4-seg3",
-        # "vid4-seg4",
-        # "vid4-seg5",
-        # "vid4-seg6",
-        # "vid4-seg7",
-        # "vid4-seg8",
-        # "vid4-seg9",
-        # # vid5 block (2 more minutes)
-        # "vid5-seg1",
-        "vid5-seg2",
-    ]
 
     if OUTPUT_FILE_TO_REDIRECT_PRINTS is not None:
         output_file_handle = open(OUTPUT_FILE_TO_REDIRECT_PRINTS, "w")
         sys.stdout = output_file_handle
 
     for json_file_path in sorted((Path(__file__).parent / "json_files").glob("*.json")):
-        if (
-            JSON_FILES_TO_PROCESS_FILTER is not None
-            and JSON_FILES_TO_PROCESS_FILTER not in json_file_path.stem
-        ):
-            continue
-
-        import functools
-
-        # if not functools.reduce(
-        #     lambda x, y: x or y,
-        #     [
-        #         segment in json_file_path.stem
-        #         for segment in VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES
-        #     ],
-        #     False,
-        # ):
-        #     continue
         main(
             [json_file_path],
             num_annotated_participants=1,
