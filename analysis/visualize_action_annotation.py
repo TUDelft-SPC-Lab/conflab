@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import scipy.interpolate
+from typing import Optional
 
 grandparent_dir = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(grandparent_dir))
@@ -97,111 +98,174 @@ def create_annotation_square(
     return annotation_square
 
 
-def main():
-    segment_name = "vid2-seg8"
-    annotators = [1, 2, 3]
-    participant = 22
-
-    # Size in pixels of the annotation square below the frames
-    annotations_img_height = 20
-
-    video_path = Path(
-        f"/home/era/code/NEON/data/conflab/video_segments/cam2/{segment_name}-scaled-denoised.mp4"
+def create_viewing_info(
+    viewing_info: str, viewing_info_height: int, frame_width: int, dtype: np.dtype
+):
+    viewing_info_square = np.zeros((viewing_info_height, frame_width, 3), dtype=dtype)
+    cv2.putText(
+        viewing_info_square,
+        viewing_info,
+        (0, viewing_info_height - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        fontScale=0.4,
+        color=(255, 255, 255),
+        lineType=2,
     )
+    return viewing_info_square
 
-    annotation_paths: list[Path] = []
-    for i in annotators:
-        annotation_paths.append(
-            Path(
-                f"/home/era/Downloads/exported_csv_files/Speaking/With_Audio/{segment_name.replace('-','_')}_ann{i}.csv"
-            )
-        )
 
-    # Read the annotations
-    annotations_dfs = [
-        pd.read_csv(annotation_path) for annotation_path in annotation_paths
-    ]
-    data_for_participant = [
-        annotations_df[str(participant)].array for annotations_df in annotations_dfs
-    ]
+def get_user_input() -> str:
+    user_input, user_key = "", None
+    while user_key != 13:  # 13 is the Enter key
+        user_key = cv2.waitKey()
+        if user_key != 13:
+            user_input += chr(user_key)
+    return user_input
 
-    cap = cv2.VideoCapture(video_path)
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-    # Nearest neighbour interpolate data_for_participant to the frame width
-    # Create a function defined as y = f(x)
-    interpolators_participant: list[scipy.interpolate.interp1d] = []
-    for data_for_participant_i in data_for_participant:
-        interpolators_participant.append(
-            scipy.interpolate.interp1d(
-                x=np.arange(0, len(data_for_participant_i)),
-                y=data_for_participant_i,
-                kind="nearest",  # Nearest neighbour interpolation
-                fill_value=np.nan,  # Extrapolate with nans
-                bounds_error=False,  # Allow extrapolation
-                assume_sorted=True,  # Data is sorted on x
-            )
-        )
-    data_for_participant_in_frame_width = None
+ACTIONS = {"s": "Speaking", "l": "Laughing", "u": "UsingMobilePhone", "d": "Drinking"}
+MODE = {"n": "No_Audio", "w": "With_Audio", "o": "Only_Audio"}
 
-    window_name = f"Participant {participant} {annotation_paths[0].parent.parent.name} {annotation_paths[0].parent.name}"
-    cv2.namedWindow(window_name)
 
-    def on_trackbar_change(frame_index: int):
-        _on_trackbar_change(cap, frame_index)
-
-    cv2.createTrackbar("Frame", window_name, 0, total_frames - 1, on_trackbar_change)
-
-    last_frame, annotation_square = None, None
+def main():
+    participant: int = 2
+    window_created: bool = False
+    vid_number: int = 2
+    seg_number: int = 8
+    cam_number: int = 6
+    action: str = "Speaking"
+    mode: str = "With_Audio"
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            # If end of video, just keep playing that one until the user closes the window or presses q
-            frame = last_frame
+        segment_name = f"vid{vid_number}-seg{seg_number}"
+        annotators = [1, 2, 3]
 
-        frame_index = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+        # Size in pixels of the annotation square below the frames
+        annotations_img_height = 20
 
-        if annotation_square is None:
-            frame_width = frame.shape[1]
-            annotation_squares = []
-            for interpolators_participant, data_for_participant_i in zip(
-                interpolators_participant, data_for_participant
-            ):
-                # Note that some annotations are longer than the video and this ignores all data that
-                # comes after the end of the video. The interpolation on x, happens from [0, total_frames - 1]
-                data_for_participant_in_frame_width = interpolators_participant(
-                    np.linspace(0, total_frames - 1, frame_width)
-                )
-                annotation_squares.append(
-                    create_annotation_square(
-                        annotations=data_for_participant_in_frame_width,
-                        annotations_img_height=annotations_img_height,
-                        frame_width=frame_width,
-                        dtype=frame.dtype,
-                    )
-                )
-            annotation_square = np.concatenate(annotation_squares, axis=0)
-
-        last_frame = frame
-        frame_with_annotations = add_annotation_square_and_progress(
-            frame,
-            annotation_square,
-            frame_index=frame_index,
-            total_frames=total_frames,
-            annotations_img_height=annotations_img_height * len(annotators),
-            progress_img_height=annotations_img_height,
+        video_path = Path(
+            f"/home/era/code/NEON/data/conflab/video_segments/cam{cam_number}/{segment_name}-scaled-denoised.mp4"
         )
 
-        cv2.imshow(window_name, frame_with_annotations)
-        cv2.setTrackbarPos("Frame", window_name, frame_index)
+        annotation_paths: list[Path] = []
+        for i in annotators:
+            annotation_paths.append(
+                Path(
+                    f"/home/era/Downloads/exported_csv_files/{action}/{mode}/{segment_name.replace('-','_')}_ann{i}.csv"
+                )
+            )
 
-        # Wait 1 millisecond for a keypress before moving to the next frame
-        key = cv2.waitKey(1)
-        if key == ord("q"):
-            break
+        # Read the annotations
+        annotations_dfs = [
+            pd.read_csv(annotation_path) for annotation_path in annotation_paths
+        ]
+        data_for_participant = [
+            annotations_df[str(participant)].array for annotations_df in annotations_dfs
+        ]
 
-    cap.release()
-    cv2.destroyAllWindows()
+        cap = cv2.VideoCapture(video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # Nearest neighbour interpolate data_for_participant to the frame width
+        # Create a function defined as y = f(x)
+        interpolators_participant: list[scipy.interpolate.interp1d] = []
+        for data_for_participant_i in data_for_participant:
+            interpolators_participant.append(
+                scipy.interpolate.interp1d(
+                    x=np.arange(0, len(data_for_participant_i)),
+                    y=data_for_participant_i,
+                    kind="nearest",  # Nearest neighbour interpolation
+                    fill_value=np.nan,  # Extrapolate with nans
+                    bounds_error=False,  # Allow extrapolation
+                    assume_sorted=True,  # Data is sorted on x
+                )
+            )
+        data_for_participant_in_frame_width = None
+
+        window_name = "Annotation viewer"
+        if not window_created:
+            cv2.namedWindow(window_name)
+
+            def on_trackbar_change(frame_index: int):
+                _on_trackbar_change(cap, frame_index)
+
+            cv2.createTrackbar(
+                "Frame", window_name, 0, total_frames - 1, on_trackbar_change
+            )
+            window_created = True
+
+        viewing_info_str = f"Participant: {participant}, action: {action}, mode: {mode}, cam{cam_number} vid{vid_number}-seg{seg_number}"
+
+        last_frame, annotation_square, viewing_info = None, None, None
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                # If end of video, just keep playing that one until the user quits or picks a different set of parameters
+                frame = last_frame
+
+            frame_index = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+
+            if annotation_square is None:
+                frame_width = frame.shape[1]
+                annotation_squares = []
+                for interpolators_participant, data_for_participant_i in zip(
+                    interpolators_participant, data_for_participant
+                ):
+                    # Note that some annotations are longer than the video and this ignores all data that
+                    # comes after the end of the video.
+                    data_for_participant_in_frame_width = interpolators_participant(
+                        np.linspace(0, total_frames - 1, frame_width)
+                    )
+                    annotation_squares.append(
+                        create_annotation_square(
+                            annotations=data_for_participant_in_frame_width,
+                            annotations_img_height=annotations_img_height,
+                            frame_width=frame_width,
+                            dtype=frame.dtype,
+                        )
+                    )
+                viewing_info = create_viewing_info(
+                    viewing_info_str, annotations_img_height, frame_width, frame.dtype
+                )
+                annotation_square = np.concatenate(
+                    annotation_squares + [viewing_info], axis=0
+                )
+
+            last_frame = frame
+            frame_with_annotations = add_annotation_square_and_progress(
+                frame,
+                annotation_square,
+                frame_index=frame_index,
+                total_frames=total_frames,
+                annotations_img_height=annotations_img_height * (len(annotators) + 1),
+                progress_img_height=annotations_img_height,
+            )
+
+            cv2.imshow(window_name, frame_with_annotations)
+            cv2.setTrackbarPos("Frame", window_name, frame_index)
+
+            # Wait 1 millisecond for a keypress before moving to the next frame
+            key = cv2.waitKey(1)
+            if key == ord("q"):
+                cap.release()
+                cv2.destroyAllWindows()
+                exit(0)
+            elif key == ord("p"):
+                participant = int(get_user_input())
+                break
+            elif key == ord("a"):
+                action = ACTIONS[get_user_input()]
+                break
+            elif key == ord("m"):
+                mode = MODE[get_user_input()]
+                break
+            elif key == ord("c"):
+                cam_number = int(get_user_input())
+                break
+            elif key == ord("v"):
+                vid_number = int(get_user_input())
+                seg_number = int(get_user_input())
+                break
+        cap.release()
 
 
 if __name__ == "__main__":
