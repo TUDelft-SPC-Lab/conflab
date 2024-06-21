@@ -9,22 +9,11 @@ from typing import Optional
 grandparent_dir = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(grandparent_dir))
 
-# from constants import (  # noqa: E402
-#     camera_id_to_dict_of_video_index_to_raw_video_file_basename,
-#     CAMERAS_OF_INTEREST,
-#     TIMECODE_FOR_ALL_SYNCED_PARTICIPANT_AUDIO_WAV_FILES,
-#     RAW_VIDEOS_FOLDER_IN_STAFF_BULK,
-#     VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK,
-#     VIDEO_SEGMENTS_FOLDER_IN_LOCAL,
-#     SYNCED_AUDIO_FOLDER_IN_LOCAL,
-#     SYNCED_AUDIO_FOLDER_IN_STAFF_BULK,
-#     NUMBER_OF_PARTICIPANTS_WITH_WAV_FILE,
-#     PARTICIPANTS_IDS_TO_IGNORE,
-#     AUDIO_SEGMENTS_PER_PARTICIPANT_FOLDER_FOR_ALL_CAMS_IN_LOCAL,
-#     CAM4_VID2_START_TIMECODE,
-#     CAM4_VID3_START_TIMECODE,
-#     check_if_staff_bulk_is_mounted,
-# )
+from constants import (  # noqa: E402
+    VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK,
+    ANNOTATIONS_FOLDER_IN_STAFF_BULK,
+    check_if_staff_bulk_is_mounted,
+)
 
 
 def _on_trackbar_change(cap: cv2.VideoCapture, frame_index: int):
@@ -135,6 +124,9 @@ def main():
     cam_number: int = 6
     action: str = "Speaking"
     mode: str = "With_Audio"
+
+    check_if_staff_bulk_is_mounted()
+
     while True:
         segment_name = f"vid{vid_number}-seg{seg_number}"
         annotators = [1, 2, 3]
@@ -142,16 +134,16 @@ def main():
         # Size in pixels of the annotation square below the frames
         annotations_img_height = 20
 
-        video_path = Path(
-            f"/home/era/code/NEON/data/conflab/video_segments/cam{cam_number}/{segment_name}-scaled-denoised.mp4"
+        video_path = (
+            VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK
+            / f"cam{cam_number}/{segment_name}-scaled-denoised.mp4"
         )
 
         annotation_paths: list[Path] = []
         for i in annotators:
             annotation_paths.append(
-                Path(
-                    f"/home/era/Downloads/exported_csv_files/{action}/{mode}/{segment_name.replace('-','_')}_ann{i}.csv"
-                )
+                ANNOTATIONS_FOLDER_IN_STAFF_BULK
+                / f"{action}/{mode}/{segment_name.replace('-','_')}_ann{i}.csv"
             )
 
         # Read the annotations

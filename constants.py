@@ -114,6 +114,9 @@ VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
 SYNCED_AUDIO_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
     "ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/audio/synced/"
 )
+ANNOTATIONS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/processed/annotation/"
+)
 
 def check_if_staff_bulk_is_mounted():
     if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
