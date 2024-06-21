@@ -122,12 +122,12 @@ def get_all_data_for_participant(
                 ]
                 assert len(participant_annotation) == 1
                 participant_annotation = participant_annotation[0]
-                if len(participant_annotation.data) > 1:
+                if participant_annotation.data is not None and len(participant_annotation.data) > 1:
                     participant_annotations.append(participant_annotation.data)
                     prolific_ids.append(response.journeys[0].prolific_id)
                     prolific_study_ids.append(response.journeys[0].prolific_study_id)
                     min_len = min(min_len, len(participant_annotation.data))
-                elif len(participant_annotation.data) == 1:
+                elif participant_annotation.data is not None and len(participant_annotation.data) == 1:
                     if response.journeys[0].prolific_id not in total_agreement:
                         total_agreement[response.journeys[0].prolific_id] = (
                             AggrementData([])
@@ -265,30 +265,32 @@ if __name__ == "__main__":
         Path(__file__).parent / "analysis_output.txt"
     )
     # UsingMobilePhone_No_Audio_v01_vid2-seg7_annotator_0 Where one annotator is missing
-    JSON_FILES_TO_PROCESS_FILTER: Optional[str] = (
-        "UsingMobilePhone_No_Audio_v01"  # Example: "Speaking_With_Audio_v01"
-    )
+    JSON_FILES_TO_PROCESS_FILTER: Optional[str] = None 
+    # (
+    #     "UsingMobilePhone_No_Audio_v01"  # Example: "Speaking_With_Audio_v01"
+    # )
 
     VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES: list[str] = [
         # 2 minutes before (2 minutes)
-        "vid2-seg7",
-        # 27 minutes after
-        # vid3 remaining block (5:38 minutes)
-        "vid3-seg7",
-        "vid3-seg8",
-        "vid3-seg9",
-        # vid4 block (17:38 minutes)
-        "vid4-seg1",
-        "vid4-seg2",
-        "vid4-seg3",
-        "vid4-seg4",
-        "vid4-seg5",
-        "vid4-seg6",
-        "vid4-seg7",
-        "vid4-seg8",
-        "vid4-seg9",
-        # vid5 block (2 more minutes)
-        "vid5-seg1",
+        # "vid2-seg7",
+        # # 27 minutes after
+        # # vid3 remaining block (5:38 minutes)
+        # "vid3-seg7",
+        # "vid3-seg8",
+        # "vid3-seg9",
+        # # vid4 block (17:38 minutes)
+        # "vid4-seg1",
+        # "vid4-seg2",
+        # "vid4-seg3",
+        # "vid4-seg4",
+        # "vid4-seg5",
+        # "vid4-seg6",
+        # "vid4-seg7",
+        # "vid4-seg8",
+        # "vid4-seg9",
+        # # vid5 block (2 more minutes)
+        # "vid5-seg1",
+        "vid5-seg2",
     ]
 
     if OUTPUT_FILE_TO_REDIRECT_PRINTS is not None:
@@ -304,18 +306,18 @@ if __name__ == "__main__":
 
         import functools
 
-        if not functools.reduce(
-            lambda x, y: x or y,
-            [
-                segment in json_file_path.stem
-                for segment in VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES
-            ],
-            False,
-        ):
-            continue
+        # if not functools.reduce(
+        #     lambda x, y: x or y,
+        #     [
+        #         segment in json_file_path.stem
+        #         for segment in VIDEO_SEGMENTS_FOR_ADDITIONAL_27_MINUTES
+        #     ],
+        #     False,
+        # ):
+        #     continue
         main(
             [json_file_path],
-            num_annotated_participants=48,
+            num_annotated_participants=1,
             do_plots=False,
             min_aggrement=0.7,
         )
