@@ -173,7 +173,7 @@ def main():
             )
         data_for_participant_in_frame_width = None
 
-        window_name = "Annotation viewer"
+        window_name = "Green (performing action), black (not performing action), blue (participant marked missing), red (missing frames)"
         if not window_created:
             cv2.namedWindow(window_name)
 
