@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import pandas as pd
 import scipy.interpolate
-from typing import Optional
 
 grandparent_dir = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(grandparent_dir))
@@ -77,11 +76,15 @@ def create_annotation_square(
     red_square = np.zeros(
         (annotations_img_height, frame_width, 3), dtype=dtype
     ) + np.array([0, 0, 255], dtype=dtype)
+    blue_square = np.zeros(
+        (annotations_img_height, frame_width, 3), dtype=dtype
+    ) + np.array([255, 0, 0], dtype=dtype)
 
     annotation_square = (
         black_square * (annotations == 0)[np.newaxis, :, np.newaxis]
         + green_square * (annotations == 1)[np.newaxis, :, np.newaxis]
         + red_square * (np.isnan(annotations))[np.newaxis, :, np.newaxis]
+        + blue_square * (annotations == -1)[np.newaxis, :, np.newaxis]
     )
 
     return annotation_square
@@ -146,16 +149,20 @@ def main():
                 / f"{action}/{mode}/{segment_name.replace('-','_')}_ann{i}.csv"
             )
 
+        cap = cv2.VideoCapture(video_path)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
         # Read the annotations
         annotations_dfs = [
             pd.read_csv(annotation_path) for annotation_path in annotation_paths
         ]
-        data_for_participant = [
-            annotations_df[str(participant)].array for annotations_df in annotations_dfs
-        ]
-
-        cap = cv2.VideoCapture(video_path)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        data_for_participant = []
+        for annotations_df in annotations_dfs:
+            if str(participant) in annotations_df:
+                data_for_participant.append(annotations_df[str(participant)].array)
+            else:
+                # Participant marked as missing, create array of -1
+                data_for_participant.append(np.full(total_frames, -1, dtype=np.int64))
 
         # Nearest neighbour interpolate data_for_participant to the frame width
         # Create a function defined as y = f(x)
@@ -184,6 +191,10 @@ def main():
                 "Frame", window_name, 0, total_frames - 1, on_trackbar_change
             )
             window_created = True
+        else:
+            # When changing modalities or segments, reset the to the start of the video
+            cv2.setTrackbarMax("Frame", window_name, total_frames - 1)
+            cv2.setTrackbarPos("Frame", window_name, 0)
 
         viewing_info_str = f"Participant: {participant}, action: {action}, mode: {mode}, cam{cam_number} vid{vid_number}-seg{seg_number}"
 
@@ -235,7 +246,7 @@ def main():
             cv2.imshow(window_name, frame_with_annotations)
             cv2.setTrackbarPos("Frame", window_name, frame_index)
 
-            # Wait 1 millisecond for a keypress before moving to the next frame
+            # Wait 1 millisecond (this is the minimal ammount) for a keypress before moving to the next frame
             key = cv2.waitKey(1)
             if key == ord("q"):
                 cap.release()
