@@ -115,6 +115,15 @@ SYNCED_AUDIO_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
     "ewi/insy/SPCDataSets/conflab-mm/release/release-final/data-raw/audio/synced/"
 )
 
+
+VIDEO_SEGMENTS_FOLDER_IN_STAFF_BULK_V4 = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/v4/internal_data/video_segments"
+)
+ANNOTATIONS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
+    "ewi/insy/SPCDataSets/conflab-mm/v4/internal_data/annotations"
+)
+
+
 def check_if_staff_bulk_is_mounted():
     if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
         raise FileNotFoundError(
