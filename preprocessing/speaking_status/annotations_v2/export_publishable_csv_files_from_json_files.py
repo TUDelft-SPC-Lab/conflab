@@ -40,6 +40,7 @@ def get_prolific_study_id_for_batches_01_and_02(
 
 
 def main(output_dir: Path):
+    all_annotators = set()
     all_annotation_metadata: list[AnnotationMetadata] = []
     for json_file_path in tqdm(
         sorted((Path(__file__).parent / "json_files").glob("*.json")), "JSON Files"
@@ -56,16 +57,10 @@ def main(output_dir: Path):
         category = hit_data.global_unique_id.split("_")[0]
         modality = "_".join(hit_data.global_unique_id.split("_")[1:-2])
         segment = hit_data.global_unique_id.split("_")[-1]
+        
 
         for node_count, node in enumerate(hit_data.nodes.values()):
             annotator = node_count + 1  # 1-indexed
-
-            annotator_file_relative_path = (
-                Path(category)
-                / modality
-                / f"{segment.replace('-','_')}_ann{annotator}.csv"
-            )
-            segment_annotator_file_path = output_dir / annotator_file_relative_path
 
             assert (
                 len(node.responses) == 1
@@ -84,50 +79,10 @@ def main(output_dir: Path):
                     if len(annotation.data) > max_array_length:
                         max_array_length = len(annotation.data)
 
-            # Pad the arrays with NaN so that they are coverted to empty cells in the CSV
-            for participant, data in annotation_data_per_participant.items():
-                padding_length = max_array_length - len(data)
-                if padding_length > 0:
-                    annotation_data_per_participant[participant] = np.pad(
-                        data, (0, padding_length), "constant", constant_values=np.nan
-                    )
+                annotator_prolific_id = response.journeys[0].prolific_id
+                all_annotators.add(annotator_prolific_id)
 
-            # Convert the dictionary to a DataFrame
-            df = pd.DataFrame.from_dict(annotation_data_per_participant, orient="index")
-
-            # Sort the DataFrame by column names (participant numbers)
-            df = df.sort_index(axis=1)
-
-            # Write the DataFrame to a CSV file
-            segment_annotator_file_path.parent.mkdir(exist_ok=True, parents=True)
-            df.transpose().to_csv(
-                segment_annotator_file_path, index=False, float_format="%.0f"
-            )
-
-            prolific_study_id = response.journeys[0].prolific_study_id
-            annotator_prolific_id = response.journeys[0].prolific_id
-            if prolific_study_id is None:
-                # Note: Batch01 and Batch02 were executed with a version of covfee missing
-                #       the prolific_study_id field. 
-                assert category == "Speaking"
-                prolific_study_id = get_prolific_study_id_for_batches_01_and_02(
-                    modality, annotator_prolific_id
-                )
-            all_annotation_metadata.append(
-                AnnotationMetadata(
-                    annotator_file_relative_path,
-                    annotator_prolific_id,
-                    prolific_study_id,
-                )
-            )
-
-    # Convert all_annotation_metadata to a DataFrame
-    metadata_df = pd.DataFrame(all_annotation_metadata)
-
-    # Write the DataFrame to a CSV file
-    metadata_file_path = output_dir / ".." / "annotation_metadata.csv"
-    metadata_df.to_csv(metadata_file_path, index=False)
-
+    print(",".join(all_annotators))
 
 if __name__ == "__main__":
     main(Path(__file__).parent / "exported_csv_files")
