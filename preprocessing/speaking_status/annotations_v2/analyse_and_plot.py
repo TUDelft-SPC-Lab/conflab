@@ -1,7 +1,7 @@
 from pathlib import Path
 import matplotlib
 
-matplotlib.use("Agg")
+# matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
@@ -147,6 +147,9 @@ def get_all_data_for_participant(
     return np.array(prolific_ids), np.array(participant_annotations), total_agreement
 
 
+from collections import defaultdict
+from tqdm import tqdm
+
 def main(
     database_files: list[Path],
     num_annotated_participants: int,
@@ -155,87 +158,50 @@ def main(
     min_aggrement: float = 0.8,
 ):
     print("\n\n")
-    all_annotation_data: list[HITData] = []
-    for database_file in database_files:
-        all_annotation_data.append(
-            load_json_data(database_file, num_annotated_participants)
-        )
-        for _ in range(3):
-            print(
-                "---------------------------------------------------------------------"
-            )
-        print(all_annotation_data[-1].global_unique_id)
-        print(database_file)
-        for _ in range(3):
-            print(
-                "---------------------------------------------------------------------"
-            )
+    
+    video_lengths = defaultdict(lambda: [])
+    for database_file in tqdm(database_files):
+        data = load_json_data(database_file, num_annotated_participants)
+        vid_seg = data.global_unique_id[-9:]
+        for node in data.nodes.values():
+            for response in node.responses:
+                annotator_all = []
+                for annotation in response.annotations.values():
+                    annotation_length = len(annotation.data)
+                    if annotation_length != 1:
+                        annotator_all.append(annotation_length)
+                annotator_all = np.array(annotator_all)
+                # if not np.all(annotator_all == annotator_all[0]):
+                #     print(f"different annotation sizes for the same annotator {annotator_all}")
+                video_lengths[vid_seg].extend(annotator_all.tolist())                    
+        # print(f"Done {database_file}")
+    print("done")
+    shorter = ["vid2-seg9", "vid3-seg9", "vid4-seg9"]
+    save_folder = Path("./length_diffs")
+    save_folder.mkdir(exist_ok=True, parents=True)
+    total = 0
+    num_diff = 0
+    for video_segment, lengths in video_lengths.items():
+        lengths_arr = np.array(lengths)
+        if video_segment in shorter:
+            lengths_diff = lengths_arr - 5884
+        else:
+            lengths_diff = lengths_arr - 7200
 
-    total_agreement: dict[str, AggrementData] = {}
-    for participant_id in range(1, num_annotated_participants + 1):
-        print("\nParticipant", participant_id)
-        if participant_id in [38, 39]:
-            print("Skipping participant", participant_id)
-            continue
-        prolific_ids, participant_data, total_agreement = get_all_data_for_participant(
-            participant_id, all_annotation_data, total_agreement
-        )
-        if len(participant_data) == 0:
-            print("No data found for participant", participant_id)
-            continue
-        vote_data = majority_vote(participant_data, range(len(prolific_ids)))
-        agreement = np.sum(vote_data == participant_data, axis=1) / vote_data.shape[0]
-        events = np.sum((participant_data[:, 1:] - participant_data[:, :-1]) == 1, axis=1)
+        unique, counts = np.unique(lengths_diff, return_counts=True)
+        total += len(lengths_diff)
+        num_diff += np.sum(lengths_diff != 0)
+        
+        plt.figure()
+        plt.bar(range(len(unique)), counts)
+        plt.xticks(range(len(unique)), unique)
+        plt.title(video_segment)
+        plt.xlabel("Distance to reference length")
+        plt.ylabel("Number of annotations")
+        plt.savefig(save_folder / f"{video_segment}.png")
 
-        for annotator, agreement_i, events_i in zip(prolific_ids, agreement, events):
-            print(f"annotator {annotator}, agreement {agreement_i*100:2.2f}%, keypress events {events_i}")
-            if annotator not in total_agreement:
-                total_agreement[annotator] = AggrementData([])
-            # Participant 2 has good visibility and overall good aggrement with the annotators, so it's good to use as
-            # a reference for screening the good annotators
-            if True:  # participant_id == 2:
-                total_agreement[annotator].data.append(agreement_i)
-
-        participant_data = np.concatenate((participant_data, vote_data[np.newaxis, :]))
-        prolific_ids = np.concatenate((prolific_ids, ["majority_vote"]))
-
-        if do_plots:
-            plot_annotations(
-                participant_id,
-                prolific_ids,
-                participant_data,
-                multithreaded=multithreaded,
-            )
-
-    print("\nAggregate results")
-    for annotator, agreement in total_agreement.items():
-        agreement.mean = np.nanmean(agreement.data)
-        agreement.std = np.nanstd(agreement.data)
-        print(
-            f"annotator {annotator}, agreement: mean {agreement.mean*100:2.2f}%, std {agreement.std*100:2.2f}%"
-        )
-    print(f"Total {len(total_agreement)} annotators")
-
-    print("\nProlific annotators that marked participants as missing")
-    for annotator, agreement in total_agreement.items():
-        if agreement.num_marked_missing > 0:
-            print(
-                f"{annotator}, marked missing {agreement.num_marked_missing} participants out of {num_annotated_participants}"
-            )
-
-    max_missing_threshold = 0
-    print(
-        f"\nProlific list over {min_aggrement*100:2.2f}% agreement and missing <= {max_missing_threshold}:"
-    )
-    i = 0
-    for annotator, agreement in total_agreement.items():
-        if (
-            agreement.mean > min_aggrement
-            and agreement.num_marked_missing <= max_missing_threshold
-        ):
-            print(f"{annotator},")
-            i += 1
-    print(f"Total {i} annotators")
+    print(num_diff / total)
+    print("done")
 
 
 if __name__ == "__main__":
@@ -245,9 +211,10 @@ if __name__ == "__main__":
     # 4. Check the output in analysis_output.txt
 
     # Change this to None to print to stdout
-    OUTPUT_FILE_TO_REDIRECT_PRINTS: Optional[Path] = (
-        Path(__file__).parent / "analysis_output.txt"
-    )
+    OUTPUT_FILE_TO_REDIRECT_PRINTS: Optional[Path] = None 
+    # (
+    #     Path(__file__).parent / "analysis_output.txt"
+    # )
     JSON_FILES_TO_PROCESS_FILTER: Optional[str] = (
         None  # Example: "Speaking_With_Audio_v01"
     )
@@ -256,15 +223,11 @@ if __name__ == "__main__":
         output_file_handle = open(OUTPUT_FILE_TO_REDIRECT_PRINTS, "w")
         sys.stdout = output_file_handle
 
-    for json_file_path in sorted((Path(__file__).parent / "json_files").glob("*.json")):
-        if (
-            JSON_FILES_TO_PROCESS_FILTER is not None
-            and JSON_FILES_TO_PROCESS_FILTER not in json_file_path.stem
-        ):
-            continue
-        main(
-            [json_file_path],
-            num_annotated_participants=48,
-            do_plots=False,
-            min_aggrement=0.7,
-        )
+    json_files = sorted((Path(__file__).parent / "json_files").glob("*.json"))
+
+    main(
+        json_files,
+        num_annotated_participants=48,
+        do_plots=False,
+        min_aggrement=0.7,
+    )
