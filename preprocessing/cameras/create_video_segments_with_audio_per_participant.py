@@ -42,7 +42,8 @@ def extract_timecode_from_conflab_raw_go_pro_video_metadata_from_cam_and_video_i
     camera_index: int, video_index: int
 ) -> datetime:
     raw_video_file_path = (
-        RAW_VIDEOS_FOLDER_IN_STAFF_BULK
+        # RAW_VIDEOS_FOLDER_IN_STAFF_BULK
+        Path("/home/zonghuan/tudelft/projects/datasets/conflab/data_raw/cameras/video")
         / f"cam{camera_index:02}"
         / camera_id_to_dict_of_video_index_to_raw_video_file_basename[
             f"cam{camera_index}"

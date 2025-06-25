@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Create video segments with audio per participant",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "preprocessing/cameras/create_video_segments_with_audio_per_participant.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Create video segments from raw videos locally",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "preprocessing/cameras/create_video_segments_from_raw_videos_local.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}

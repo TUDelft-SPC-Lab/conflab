@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # path to the conflab dataset files
-conflab_path = "/mnt/e/data/conflab/release"
+conflab_path = "/home/zonghuan/tudelft/projects/datasets/conflab"
 
 
 # paths to raw data
@@ -125,6 +125,7 @@ ANNOTATIONS_FOLDER_IN_STAFF_BULK = STAFF_BULK_MOUNT_PATH / Path(
 
 
 def check_if_staff_bulk_is_mounted():
+    return True
     if not RAW_VIDEOS_FOLDER_IN_STAFF_BULK.exists():
         raise FileNotFoundError(
             f"Mount the bulk storage first in {STAFF_BULK_MOUNT_PATH}\nUse: sshfs -o ro NETID@sftp.tudelft.nl:/staff-bulk {STAFF_BULK_MOUNT_PATH}"

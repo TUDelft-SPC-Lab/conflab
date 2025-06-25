@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/baselines/f_formations" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/baselines/person_keypoints" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/baselines/speaking_status/pose" vcs="Git" />
+  </component>
+</project>

@@ -5,7 +5,7 @@ import subprocess
 from constants import RAW_VIDEOS_FRAMERATE
 
 
-def subprocess_run_with_guardfile(cmd: list[str], guardfile_path: Path):
+def subprocess_run_with_guardfile(cmd: list[str], guardfile_path: Path, stdout=None, stderr=None):
     """
     Runs a subprocess command, and writes the command to a guardfile, which is deleted after subprocess runs
     successfully as a way to monitor whether there was a crash mid-processing, or a forced stop.
@@ -14,7 +14,7 @@ def subprocess_run_with_guardfile(cmd: list[str], guardfile_path: Path):
     running_message: str = "Running: " + " ".join(cmd)
     with open(guardfile_path, "w") as f:
         f.write(running_message)
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, stdout=stdout, stderr=stderr)
     guardfile_path.unlink()
 
 
